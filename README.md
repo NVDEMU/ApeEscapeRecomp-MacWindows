@@ -154,3 +154,30 @@ build of the game's code.
 ## v0.4.0 rendering update
 
 Game-code interpolation replaces Frame Smoothing while retaining saved rate selections. Adds internal-resolution presets, PGXP geometry/perspective correction and filtering options. Fixes the GPU foreground classification behind flickering black wall polygons. The memory-card menu uses its native layout in widescreen. Late beach-ball appearance remains under investigation.
+
+## macOS releases
+
+The macOS release workflow builds Apple Silicon (arm64) and Intel (x86_64)
+packages on GitHub-hosted runners, bundles the runtime and dynamic libraries
+into `Ape Escape Recompiled.app`, and publishes ZIP and DMG downloads. Successful
+push builds update the `macos-nightly` prerelease; pushing a `macos-v*` tag
+publishes a tagged release. The app is ad-hoc signed, not Developer ID signed
+or notarized.
+
+The original disc image is a private build input and is never committed to this
+repository. To enable the workflow:
+
+1. Make a ZIP containing your legally obtained Ape Escape `.cue` and `.bin`
+   files and store it in private file storage.
+2. In this repository, open **Settings → Secrets and variables → Actions** and
+   add the repository secret `APE_ESCAPE_DISC_URL`. Its value must be a
+   direct-download URL for that ZIP that GitHub Actions can fetch without an
+   interactive login. For Dropbox, use a direct-download link (usually
+   `?dl=1`) and keep the URL only in the Actions secret.
+3. Run **Actions → macOS app and release → Run workflow**, or push a commit to
+   `master`. The archive must contain exactly one `.cue` and one `.bin`.
+   Do not commit the disc image, generated C source, or the downloaded archive.
+
+The workflow caches generated game translation and compiler objects to speed
+up subsequent builds. The first build can take substantially longer because it
+must generate the translation and compile the large runtime.
