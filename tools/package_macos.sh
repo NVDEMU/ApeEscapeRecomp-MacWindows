@@ -95,12 +95,21 @@ fi
 
 # Bundled Python + native recompiler lets the runtime compile overlays missed
 # by the prebuilt cache, without requiring users to install developer tools.
-psx_add_overlay_toolchain --stage "$MACOS" \
+# Keep the Python scripts, seed JSON and other toolchain data under
+# Contents/Resources. Contents/MacOS is a code directory and codesign rejects
+# arbitrary data nested there. A relative symlink preserves the framework's
+# existing runtime lookup path: <executable-dir>/overlay_toolchain.
+psx_add_overlay_toolchain --stage "$RESOURCES" \
   --recomp-dir "$FW/recompiler/build" \
   --recomp-tools "$FW/tools" \
   --recomp-include "$FW/runtime/include" \
   --dl-cache "$ROOT/tools/_toolchain_cache" \
   --platform "$PLATFORM_TAG" >/dev/null
+[ -d "$RESOURCES/overlay_toolchain" ] || {
+  echo "Overlay toolchain staging did not create $RESOURCES/overlay_toolchain" >&2
+  exit 1
+}
+ln -s ../Resources/overlay_toolchain "$MACOS/overlay_toolchain"
 
 cat > "$MACOS/Ape Escape Recompiled" <<'SH'
 #!/bin/sh
