@@ -135,9 +135,9 @@ jobs:
         run: |
           set -euo pipefail
           cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build psxrecomp-v4/recompiler/build --parallel "$BUILD_JOBS" --target psxrecomp-game psxrecomp-bios
           (
             cd psxrecomp-v4
