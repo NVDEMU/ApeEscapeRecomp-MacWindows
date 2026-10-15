@@ -61,7 +61,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
 
       - name: Install macOS build tools
         run: |
@@ -95,8 +94,8 @@ jobs:
           curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$RUNNER_TEMP/ape-disc.zip"
           unzip -q "$RUNNER_TEMP/ape-disc.zip" -d "$RUNNER_TEMP/ape-disc"
           python3 - <<'PY'
-          import pathlib, re, shutil
-          root = pathlib.Path("$RUNNER_TEMP") / "ape-disc"
+          import os, pathlib, re, shutil
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ape-disc"
           cues = list(root.rglob("*.cue")) + list(root.rglob("*.CUE"))
           bins = list(root.rglob("*.bin")) + list(root.rglob("*.BIN"))
           cues = list(dict.fromkeys(cues))
