@@ -35,12 +35,12 @@ mkdir -p "$MACOS" "$FRAMEWORKS" "$RESOURCES"
 # assets, as SDL_GetBasePath() expects, while user-writable data lives outside
 # the signed app bundle in ~/Library/Application Support.
 cp "$BIN" "$MACOS/ApeEscapeRecomp.bin"
-cp -R "$BUILD_DIR/assets" "$MACOS/assets"
-cp -R "$BUILD_DIR/bios" "$MACOS/bios"
-cp "$ROOT/packaging/release/input.ini" "$MACOS/input.ini"
+cp -R "$BUILD_DIR/assets" "$RESOURCES/assets"
+cp -R "$BUILD_DIR/bios" "$RESOURCES/bios"
+cp "$ROOT/packaging/release/input.ini" "$RESOURCES/input.ini"
 
 # Strip developer-only audit settings just as the Windows/Linux packagers do.
-python3 - "$ROOT/game.toml" "$MACOS/game.toml" <<'PY'
+python3 - "$ROOT/game.toml" "$RESOURCES/game.toml" <<'PY'
 import pathlib, sys
 src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
 for marker in ("Audit-specific", "[audit]"):
@@ -57,7 +57,7 @@ PY
 # shellcheck source=/dev/null
 . "$FW/tools/release_overlay_stage.sh"
 psx_release_stage_init "$FW"
-psx_add_mod_catalog --build-path "$BUILD_DIR" --stage "$MACOS" --runtime-target psx-runtime >/dev/null
+psx_add_mod_catalog --build-path "$BUILD_DIR" --stage "$RESOURCES" --runtime-target psx-runtime >/dev/null
 
 cp "$ROOT/LICENSE" "$RESOURCES/LICENSE"
 cp "$ROOT/README.md" "$RESOURCES/README.md"
@@ -76,7 +76,7 @@ mkdir -p "$AOT_STAGE"
 if python3 "$FW/tools/aot_overlay_pipeline.py" release \
   --profile "$ROOT/aot/overlays.json" \
   --game-toml "$ROOT/game.toml" \
-  --runtime-config "$MACOS/game.toml" \
+  --runtime-config "$RESOURCES/game.toml" \
   --runtime-build-dir "$BUILD_DIR" \
   --runtime-target psx-runtime \
   --recompiler "$FW/recompiler/build/psxrecomp-game" \
@@ -84,7 +84,7 @@ if python3 "$FW/tools/aot_overlay_pipeline.py" release \
   --stage "$AOT_STAGE" \
   --gcc gcc \
   --workers "${AOT_WORKERS:-2}"; then
-  ditto "$AOT_STAGE" "$MACOS"
+  ditto "$AOT_STAGE" "$RESOURCES"
   rm -rf "$AOT_STAGE"
 else
   AOT_STATUS=$?
@@ -109,6 +109,17 @@ psx_add_overlay_toolchain --stage "$RESOURCES" \
   echo "Overlay toolchain staging did not create $RESOURCES/overlay_toolchain" >&2
   exit 1
 }
+# Runtime-relative paths must continue to exist beside the executable, but
+# the actual data trees belong in Contents/Resources. The links preserve
+# SDL_GetBasePath()-relative lookups without putting mod/package directories
+# inside Contents/MacOS, where codesign mistakes some of them for nested code.
+for tree in assets bios mods cache; do
+  if [ -d "$RESOURCES/$tree" ]; then
+    ln -s "../Resources/$tree" "$MACOS/$tree"
+  fi
+done
+ln -s ../Resources/game.toml "$MACOS/game.toml"
+ln -s ../Resources/input.ini "$MACOS/input.ini"
 ln -s ../Resources/overlay_toolchain "$MACOS/overlay_toolchain"
 
 cat > "$MACOS/Ape Escape Recompiled" <<'SH'
@@ -121,11 +132,11 @@ export APE_ESCAPE_RECOMP_DATA_DIR="$DATA"
 export SDL_JOYSTICK_HIDAPI_STEAM=1
 # Seed first-run writable state from the packaged defaults. Never overwrite a
 # player's configuration, mods, saves or compiled cache on later launches.
-[ -f "$DATA/game.toml" ] || cp "$HERE/game.toml" "$DATA/game.toml"
-[ -f "$DATA/input.ini" ] || cp "$HERE/input.ini" "$DATA/input.ini"
+[ -f "$DATA/game.toml" ] || cp "$HERE/../Resources/game.toml" "$DATA/game.toml"
+[ -f "$DATA/input.ini" ] || cp "$HERE/../Resources/input.ini" "$DATA/input.ini"
 for tree in cache mods; do
-  if [ -d "$HERE/$tree" ] && [ ! -e "$DATA/$tree" ]; then
-    ditto "$HERE/$tree" "$DATA/$tree"
+  if [ -d "$HERE/../Resources/$tree" ] && [ ! -e "$DATA/$tree" ]; then
+    ditto "$HERE/../Resources/$tree" "$DATA/$tree"
   fi
 done
 cd "$DATA"
