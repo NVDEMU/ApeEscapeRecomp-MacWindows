@@ -62,7 +62,7 @@ cp "$ROOT/LICENSE" "$RESOURCES/LICENSE"
 cp "$ROOT/README.md" "$RESOURCES/README.md"
 cp "$ROOT/RELEASE_NOTES.md" "$RESOURCES/RELEASE_NOTES.md"
 cp "$ROOT/docs/AOT_OVERLAYS.md" "$RESOURCES/AOT_OVERLAYS.md"
-cp "$ROOT/packaging/release/START_HERE.txt" "$RESOURCES/START_HERE.txt"
+cp "$ROOT/packaging/macos/START_HERE.txt" "$RESOURCES/START_HERE.txt"
 [ ! -f "$ROOT/framework_pins.txt" ] || cp "$ROOT/framework_pins.txt" "$RESOURCES/framework_pins.txt"
 
 # Precompile the repository's audited original-disc overlays for this exact
@@ -137,7 +137,7 @@ fi
 codesign --force --deep --sign - "$APP"
 
 # Keep a copy of the how-to beside the downloads as well as inside the bundle.
-cp "$ROOT/packaging/release/START_HERE.txt" "$OUT_DIR/START_HERE-macos.txt"
+cp "$ROOT/packaging/macos/START_HERE.txt" "$OUT_DIR/START_HERE-macos.txt"
 ZIP="$OUT_DIR/ApeEscapeRecomp-$VERSION-macos-$ARCH.zip"
 DMG="$OUT_DIR/ApeEscapeRecomp-$VERSION-macos-$ARCH.dmg"
 rm -f "$ZIP" "$DMG"
