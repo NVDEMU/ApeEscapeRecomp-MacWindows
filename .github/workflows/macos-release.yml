@@ -18,6 +18,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh
+      - name: Check calibrated controller defaults
+        run: python3 tools/check_controller_defaults.py
       - name: Check macOS install guide exists
         run: test -s packaging/macos/START_HERE.txt
 

@@ -116,8 +116,11 @@ and return to 1x if a demanding scene misses full speed.
 Ape Escape is a dual-analog title — the right stick swings the catch net — so an
 analog controller is strongly recommended. Any plugged pad is auto-bound and
 presented to the game as a DualShock; a keyboard folds onto the analog stick.
-Save states and rewind are exposed through launcher hotkeys; by default F7 opens
-the save-state menu and F8 rewinds.
+The launcher exposes stick-deadzone and controller/keybind settings. The bundled
+10% deadzone default is calibrated against Ape Escape's native stick response;
+increase it slightly if a worn controller drifts, or lower it if small movements
+do not register. Save states and rewind are exposed through launcher hotkeys;
+by default F7 opens the save-state menu and F8 rewinds.
 The disc path, optional retail BIOS choice, and options are saved next to the
 exe. Clear the BIOS row to return to OpenBIOS.
 

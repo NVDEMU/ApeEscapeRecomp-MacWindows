@@ -32,6 +32,11 @@ CONTROLLERS
   Ape Escape uses both analog sticks; a DualShock-compatible controller is
   strongly recommended.
 
+  Open Settings > Controller to adjust the stick deadzone and remap controls.
+  The bundled 10% deadzone is calibrated to Ape Escape's native stick response.
+  If your controller drifts, raise the deadzone a little; if small movements
+  do not register, lower it.
+
 STATUS
   This is an in-development preview. Some original-disc overlays are not
   statically covered; the runtime fallback remains enabled.
