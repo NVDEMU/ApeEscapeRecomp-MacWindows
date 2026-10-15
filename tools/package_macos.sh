@@ -49,7 +49,7 @@ for marker in ("Audit-specific", "[audit]"):
         line_start = src.rfind("\n", 0, index)
         src = src[:max(0, line_start)].rstrip() + "\n"
         break
-pathlib.Path(sys.argv[2]).write_text(src, encoding="ascii")
+pathlib.Path(sys.argv[2]).write_text(src, encoding="utf-8")
 PY
 
 # The shared framework owns mod catalog validation, cache tagging and
