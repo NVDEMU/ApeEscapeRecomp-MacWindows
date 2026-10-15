@@ -184,6 +184,48 @@ def main() -> int:
             continue
         print(f"0x{pc:08X}  {word:08X}  {decode(pc, word)}")
         count += 1
+    print("\\n--- SLTIU / BEQZ ordering-table candidate scan (unverified) ---")
+    print("Pattern: sltiu dst, source, N; beqz dst, reject. Candidates require semantic review.")
+    ot_candidates = []
+    for i in range(instruction_count - 1):
+        word = word_at(i)
+        if ((word >> 26) & 0x3F) != 0x0B:  # SLTIU
+            continue
+        source = (word >> 21) & 31
+        destination = (word >> 16) & 31
+        limit = word & 0xFFFF
+        if not 0x80 <= limit <= 0x1000:
+            continue
+        branch = word_at(i + 1)
+        if ((branch >> 26) & 0x3F) != 0x04:  # BEQ
+            continue
+        branch_rs, branch_rt = (branch >> 21) & 31, (branch >> 16) & 31
+        if branch_rs != destination or branch_rt != 0:
+            continue
+        pc = pc_at(i)
+        target = (pc + 8 + (sign16(branch & 0xFFFF) << 2)) & 0xFFFFFFFF
+        ot_candidates.append((pc, word, source, destination, limit, target, i))
+    print(f"Found {len(ot_candidates)} opcode-pattern candidates in main EXE.")
+    for pc, word, source, destination, limit, target, index in ot_candidates:
+        print(
+            f"0x{pc:08X} word=0x{word:08X} source={reg(source)} "
+            f"result={reg(destination)} limit=0x{limit:04X} "
+            f"reject=0x{target:08X}"
+        )
+        for context_index in (index - 1, index + 1, index + 2):
+            if 0 <= context_index < instruction_count:
+                ctx_word = word_at(context_index)
+                print(
+                    f"    0x{pc_at(context_index):08X} "
+                    f"{ctx_word:08X} {decode(pc_at(context_index), ctx_word)}"
+                )
+        target_index = index_at(target)
+        if 0 <= target_index < instruction_count:
+            target_word = word_at(target_index)
+            print(
+                f"    -> 0x{target:08X} "
+                f"{target_word:08X} {decode(target, target_word)}"
+            )
     if count == 0:
         print("(no SLTI/SLTIU immediates >= 64 in selected code ranges)")
     return 0
