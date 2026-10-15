@@ -67,8 +67,13 @@ cp "$ROOT/packaging/macos/START_HERE.txt" "$RESOURCES/START_HERE.txt"
 [ ! -f "$ROOT/framework_pins.txt" ] || cp "$ROOT/framework_pins.txt" "$RESOURCES/framework_pins.txt"
 
 # Precompile the repository's audited original-disc overlays for this exact
-# host ABI. The remaining unsupported entries retain the framework fallback.
-python3 "$FW/tools/aot_overlay_pipeline.py" release \
+# host ABI. This is an optimization: interpreter/runtime compilation fallback
+# remains enabled, so an AOT extraction failure must not block the macOS app.
+# Stage separately so a failed attempt cannot leave a partial cache in the app.
+AOT_STAGE="$ROOT/build-aot-macos-stage"
+rm -rf "$AOT_STAGE"
+mkdir -p "$AOT_STAGE"
+if python3 "$FW/tools/aot_overlay_pipeline.py" release \
   --profile "$ROOT/aot/overlays.json" \
   --game-toml "$ROOT/game.toml" \
   --runtime-config "$MACOS/game.toml" \
@@ -76,9 +81,17 @@ python3 "$FW/tools/aot_overlay_pipeline.py" release \
   --runtime-target psx-runtime \
   --recompiler "$FW/recompiler/build/psxrecomp-game" \
   --work-dir "$ROOT/build-aot-macos" \
-  --stage "$MACOS" \
+  --stage "$AOT_STAGE" \
   --gcc gcc \
-  --workers "${AOT_WORKERS:-2}"
+  --workers "${AOT_WORKERS:-2}"; then
+  ditto "$AOT_STAGE" "$MACOS"
+  rm -rf "$AOT_STAGE"
+else
+  AOT_STATUS=$?
+  echo "::warning::Original-disc AOT overlay precompilation failed (exit $AOT_STATUS). Packaging the app with runtime compilation/interpreter fallback; no partial AOT cache will be shipped."
+  find "$ROOT/build-aot-macos" -type f -name extract.log -print -exec tail -n 160 {} \; 2>/dev/null || true
+  rm -rf "$AOT_STAGE"
+fi
 
 # Bundled Python + native recompiler lets the runtime compile overlays missed
 # by the prebuilt cache, without requiring users to install developer tools.
