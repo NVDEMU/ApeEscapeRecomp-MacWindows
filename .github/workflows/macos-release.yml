@@ -77,7 +77,8 @@ jobs:
 
       - name: Install macOS build tools
         run: |
-          brew install cmake ninja sdl3 ccache dylibbundler mame
+          brew install cmake ninja sdl3 ccache dylibbundler rom-tools
+          command -v chdman
 
       - name: Record pinned framework revision
         id: pins
