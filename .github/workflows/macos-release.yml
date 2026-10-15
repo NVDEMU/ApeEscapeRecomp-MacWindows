@@ -14,6 +14,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Check macOS packaging shell syntax
+        run: bash -n tools/package_macos.sh
+      - name: Check macOS install guide exists
+        run: test -s packaging/macos/START_HERE.txt
+
   check-assets:
     runs-on: ubuntu-latest
     outputs:
@@ -84,6 +94,14 @@ jobs:
           restore-keys: |
             ccache-macos-${{ matrix.arch }}-
 
+      - name: Cache pinned overlay tool downloads
+        uses: actions/cache@v4
+        with:
+          path: tools/_toolchain_cache
+          key: overlay-downloads-${{ matrix.arch }}-${{ steps.pins.outputs.framework }}
+          restore-keys: |
+            overlay-downloads-${{ matrix.arch }}-
+
       - name: Download private disc archive
         id: disc
         env:
@@ -116,7 +134,10 @@ jobs:
       - name: Build the recompiler and bundled OpenBIOS
         run: |
           set -euo pipefail
-          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build psxrecomp-v4/recompiler/build --parallel "$BUILD_JOBS" --target psxrecomp-game psxrecomp-bios
           (
             cd psxrecomp-v4
@@ -169,7 +190,7 @@ jobs:
           retention-days: 14
 
   publish-release:
-    needs: [check-assets, build-macos]
+    needs: [lint, check-assets, build-macos]
     if: needs.check-assets.outputs.ready == 'true'
     runs-on: ubuntu-latest
     steps:
