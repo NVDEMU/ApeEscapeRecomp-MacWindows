@@ -1,0 +1,37 @@
+Ape Escape Recompiled for macOS
+================================
+
+INSTALL
+  Open the DMG and drag "Ape Escape Recompiled.app" to Applications, or
+  unzip the ZIP and move the app wherever you prefer.
+
+FIRST LAUNCH
+  This preview is ad-hoc signed, not Developer ID signed or notarized.
+  Control-click the app and choose Open on the first launch, then confirm
+  the macOS prompt. If macOS still blocks a trusted download, remove its
+  quarantine attribute in Terminal with:
+    xattr -dr com.apple.quarantine "/Applications/Ape Escape Recompiled.app"
+
+GAME DISC
+  The game disc is not included. Keep your legally obtained Ape Escape (USA)
+  .cue and .bin files together in the same folder. Launch the app, select the
+  .cue file in the Disc row, and choose Launch.
+
+BIOS
+  The MIT-licensed OpenBIOS is included. A retail PlayStation BIOS is optional
+  and not included.
+
+SAVES AND SETTINGS
+  Player data is stored in:
+    ~/Library/Application Support/Ape Escape Recompiled/
+
+  This includes configuration, save data and the local overlay cache. Do not
+  delete this folder unless you want to remove that data.
+
+CONTROLLERS
+  Ape Escape uses both analog sticks; a DualShock-compatible controller is
+  strongly recommended.
+
+STATUS
+  This is an in-development preview. Some original-disc overlays are not
+  statically covered; the runtime fallback remains enabled.
