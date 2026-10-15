@@ -227,6 +227,18 @@ lock_device  = false
 deadzone      = 3277
 anti_deadzone = 5376
 
+# Verified release-disc metadata. The CI pipeline accepts the CHD from private
+# storage, materialises it through the pinned framework's libchdr support,
+# and checks the extracted data track against this Redump identity.
+[prepare_disc]
+out_dir = "apeescape"
+bin_name = "Ape Escape (USA).bin"
+cue_name = "Ape Escape (USA).cue"
+boot_exe = "SCUS_944.23"
+known_sizes = [432238800]
+known_md5 = ["DE4E7AB78C08BD03712E83C14D4CF642"]
+known_sha1 = ["466CCE4BCD6992F57227ABD270323BCDAD2FB7FC"]
+
 # ── Audit-specific config (consumed by psxrecomp-v4/tools/*.py and tests) ──
 # Schema mirrors psxrecomp-v4/bios/SCPH1001.toml. Paths are relative to the
 # project root.
