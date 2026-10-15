@@ -8,6 +8,7 @@ FW="$ROOT/psxrecomp-v4"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build-macos-release}"
 OUT_DIR="${OUT_DIR:-$ROOT/release-macos}"
 VERSION="${VERSION:-$(tr -d ' \t\r\n' < "$ROOT/packaging/release/VERSION")}"
+BUNDLE_VERSION="${VERSION#v}"
 ARCH="$(uname -m)"
 case "$ARCH" in
   arm64|aarch64) ARCH=arm64; PLATFORM_TAG=macos-arm64 ;;
@@ -119,8 +120,8 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>io.github.nvdemu.apeescaperecomp</string>
   <key>CFBundleExecutable</key><string>Ape Escape Recompiled</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleVersion</key><string>$VERSION</string>
-  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundleVersion</key><string>$BUNDLE_VERSION</string>
+  <key>CFBundleShortVersionString</key><string>$BUNDLE_VERSION</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
