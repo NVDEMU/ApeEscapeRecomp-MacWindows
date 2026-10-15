@@ -2,16 +2,13 @@ name: macOS app and release
 
 on:
   push:
-    branches: [master]
+    branches: ['**']
     tags: ['macos-v*']
   workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: ape-escape-macos-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   lint:
@@ -80,7 +77,7 @@ jobs:
 
       - name: Install macOS build tools
         run: |
-          brew install cmake ninja sdl3 ccache dylibbundler
+          brew install cmake ninja sdl3 ccache dylibbundler mame
 
       - name: Record pinned framework revision
         id: pins
@@ -149,10 +146,19 @@ jobs:
             bash tools/regen_bios.sh --config bios/OpenBIOS.toml
           )
 
-      - name: Prepare the private CHD through pinned libchdr
+      - name: Convert CHD to CUE/BIN and prepare disc with the assets workflow's method
         run: |
           set -euo pipefail
-          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd" --config game.toml
+          # The pinned prepare_disc helper is not built with a CHD reader.
+          # Use the same chdman extract flow as ApeEscapeWii-privateassets.
+          chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
+          chdman extractcd \
+            -i "$RUNNER_TEMP/Ape Escape (USA).chd" \
+            -o "$RUNNER_TEMP/Ape Escape (USA).cue" \
+            -ob "$RUNNER_TEMP/Ape Escape (USA).bin"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).cue"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).bin"
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).cue" --config game.toml
           test -s "apeescape/Ape Escape (USA).cue"
           test -s "apeescape/Ape Escape (USA).bin"
           test -s "apeescape/SCUS_944.23"
@@ -203,7 +209,10 @@ jobs:
 
   publish-release:
     needs: [lint, check-assets, build-macos]
-    if: needs.check-assets.outputs.ready == 'true'
+    if: needs.check-assets.outputs.ready == 'true' && (github.ref == 'refs/heads/master' || github.ref_type == 'tag')
+    concurrency:
+      group: ape-escape-macos-release
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Download both architecture packages
