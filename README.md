@@ -198,6 +198,7 @@ workflow**, or push a commit to `master`. The CHD must match the verified
 Ape Escape (USA) disc identity. Do not commit the disc image, generated C
 source, or the downloaded archive.
 
-The workflow caches generated game translation and compiler objects to speed
-up subsequent builds. The first build can take substantially longer because it
-must generate the translation and compile the large runtime.
+The workflow caches compiler objects and pinned open-source overlay-tool downloads
+to speed up subsequent builds. It deliberately does not cache the generated game
+C source in this public repository. The first build can take substantially longer
+because it must generate the translation and compile the large runtime.
