@@ -33,17 +33,23 @@ jobs:
         shell: bash
         env:
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
         run: |
-          if [ -z "$DISC_URL" ]; then
+          set -euo pipefail
+          if [ -n "$DISC_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$DROPBOX_APP_KEY" ] && [ -n "$DROPBOX_APP_SECRET" ] && [ -n "$DROPBOX_REFRESH_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::macOS build skipped. Add a Dropbox direct-download URL for your CHD as the APE_ESCAPE_DISC_URL Actions secret."
+            echo "::warning::macOS build skipped. Configure either APE_ESCAPE_DISC_URL, or all three private Dropbox OAuth secrets: DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN."
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
-              echo "::error::A manual or tagged release requires APE_ESCAPE_DISC_URL."
+              echo "::error::A manual or tagged release requires a CHD download URL or all three Dropbox OAuth secrets."
               exit 1
             fi
-            exit 0
           fi
-          echo "ready=true" >> "$GITHUB_OUTPUT"
 
   build-macos:
     needs: check-assets
@@ -106,11 +112,34 @@ jobs:
         id: disc
         env:
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
-          curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$RUNNER_TEMP/Ape Escape (USA).chd"
-          test -s "$RUNNER_TEMP/Ape Escape (USA).chd"
+          DEST="$RUNNER_TEMP/Ape Escape (USA).chd"
+          if [ -n "$DISC_URL" ]; then
+            # Convenience mode: the secret contains a Dropbox shared link with
+            # dl=1. The link itself is never printed or checked into the repo.
+            curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$DEST"
+          else
+            # Private mode: exchange a refresh token for a short-lived access
+            # token, then download by Dropbox path without any public link.
+            TOKEN_JSON="$(curl --fail --silent --show-error --user "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET" \
+              --data-urlencode "grant_type=refresh_token" \
+              --data-urlencode "refresh_token=$DROPBOX_REFRESH_TOKEN" \
+              https://api.dropbox.com/oauth2/token)"
+            ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
+            echo "::add-mask::$ACCESS_TOKEN"
+            curl --fail --silent --show-error --location --retry 3 \
+              -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H 'Dropbox-API-Arg: {"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' \
+              https://content.dropboxapi.com/2/files/download \
+              -o "$DEST"
+          fi
+          test -s "$DEST"
           echo "Downloaded CHD into runner temp storage; it will not be committed or attached to the release."
 
       - name: Build the recompiler and bundled OpenBIOS
