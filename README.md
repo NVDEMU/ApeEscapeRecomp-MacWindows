@@ -159,17 +159,22 @@ Game-code interpolation replaces Frame Smoothing while retaining saved rate sele
 
 The macOS release workflow builds Apple Silicon (arm64) and Intel (x86_64)
 packages on GitHub-hosted runners, bundles the runtime and dynamic libraries
-into `Ape Escape Recompiled.app`, and publishes ZIP and DMG downloads. Successful
-push builds update the `macos-nightly` prerelease; pushing a `macos-v*` tag
-publishes a tagged release. The app is ad-hoc signed, not Developer ID signed
-or notarized.
+into `Ape Escape Recompiled.app`, and publishes ZIP and DMG downloads.
+Every push to any branch triggers a build; successful pushes to `master` update
+the `macos-nightly` prerelease, and pushing a `macos-v*` tag publishes a tagged
+release. Other branches keep their packages as workflow artifacts. The app is
+ad-hoc signed, not Developer ID signed or notarized.
 
 The original disc image is a build input held outside the repository.
-CI downloads your Dropbox file `/ApeEscapeWii-private-assets/Ape Escape (USA).chd`
-to temporary runner storage, then the pinned PSXRecomp `prepare_disc.py`
-tool converts it and verifies the extracted track against the expected Redump
-MD5/SHA-1/size recorded in `game.toml`. The disc, extracted BIN/CUE, boot EXE
-and generated game C are never committed or attached to releases.
+CI downloads your single Dropbox CHD file
+`/ApeEscapeWii-private-assets/Ape Escape (USA).chd` to temporary runner storage.
+It uses MAME's `chdman` to extract the CHD into a matching CUE/BIN pair—the same
+conversion method already used by `ApeEscapeWii-privateassets`—then runs the
+pinned PSXRecomp `prepare_disc.py` on the CUE to verify the expected Redump
+size/MD5/SHA-1 and extract the boot executable recorded in `game.toml`.
+You do **not** need to upload the BIN and CUE separately; provide only the CHD.
+The disc, extracted BIN/CUE, boot EXE and generated game C are never committed
+or attached to releases.
 
 Choose one download method:
 
@@ -194,7 +199,7 @@ URL can fetch the file, so the authenticated method above is preferable for
 strictly private storage. Keep the URL only in the GitHub Actions secret.
 
 Once one method is configured, run **Actions → macOS app and release → Run
-workflow**, or push a commit to `master`. The CHD must match the verified
+workflow**, or push a commit to any branch. The CHD must match the verified
 Ape Escape (USA) disc identity. Do not commit the disc image, generated C
 source, or the downloaded archive.
 
