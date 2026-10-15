@@ -1,212 +1,68 @@
-# ApeEscapeRecomp
+# Ape Escape Recompiled — nvd123
 
-> _This recompilation is a **byproduct of developing
-> [psxrecomp](https://github.com/mstan/psxrecomp)** — the games are the proving ground, the framework is the goal.
-> **These are in-development previews, not finished ports — expect rough
-> edges**, and depth will keep landing over months, not days. My time for any
-> one title is limited, so I ask for your patience. Contributions are welcome —
-> testing, issues, and PRs to the game or framework all help and will
-> accelerate this game's polish. More on the why at:
-> [Recomp + AI: 5 Months Later »](https://1379.tech/recomp-ai-5-months-later/)_
+**Project maintainer: nvd123** · [Source code](https://github.com/NVDEMU/ApeEscapeRecomp-Mac) · [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-Mac/releases)
 
-Ape Escape (USA, SCUS-94423) statically recompiled to a native PC executable
-with [PSXRecomp](https://github.com/mstan/psxrecomp) — the same framework behind
-[TombaRecomp](https://github.com/mstan/TombaRecomp) and
-[MegaManX6Recomp](https://github.com/mstan/MegaManX6Recomp).
+A macOS-focused native build of **Ape Escape (USA, SCUS-94423)**. The project uses static recompilation through the PSXRecomp framework to translate the original game's machine code into a native executable while retaining the PlayStation hardware model used by the runtime.
 
-Known issues live in [`ISSUES.md`](ISSUES.md).
+This is an actively developed preview, not a claim of a fully verified 100% playthrough. The original game disc is not included.
 
-Releases precompile 47 archive overlays and two minigame executables directly
-from the original disc using the shared psxrecomp AOT pipeline. See
-[AOT overlay evidence and limits](docs/AOT_OVERLAYS.md) and the
-[shared method guide](psxrecomp-v4/docs/AOT_SHARDING.md). Two unresolved archive
-members remain excluded; fallback stays enabled and complete static coverage
-is not claimed.
+## Current status
 
-## What This Is
+The game boots through the introduction and title screens into playable levels. Dual-analog controls, memory-card saves, save states and rewind are available. Rendering uses OpenGL by default, with a Software renderer option.
 
-This repository contains the game-specific configuration, seeds, tools, and
-build glue for running Ape Escape on the PSXRecomp framework. The game's MIPS
-code is machine-translated ("recompiled") ahead of time into native C, then
-compiled into a real Windows program that runs the game's own logic on a
-faithful simulation of the PS1 hardware (GPU, SPU, GTE, memory cards) plus the
-real, recompiled PS1 BIOS — no high-level emulation shims.
-
-It does **not** contain the Ape Escape disc image, a retail PS1 BIOS, generated
-game code, or any decompiled game C. Release builds include the MIT-licensed
-OpenBIOS from PCSX-Redux; game data and an optional retail BIOS come from your
-own legally obtained assets.
-
-Important files:
-
-- `game.toml`: runtime / recompiler / video / controller / widescreen config.
-- `mods/preloaded/`: built-in, default-off mod packages shown by the launcher.
-- `seeds/`: Ghidra-derived function starts and game-specific seed data.
-- `tools/regen.ps1`: regenerates the recompiled C output.
-- `tools/package_release.ps1`: builds the redistributable release zip.
-- `psxrecomp-v4/`: framework submodule commit this project is known-good against.
-- `ISSUES.md`: game-specific issue log.
-- `DISC.md`: source-disc identity and verification hashes.
-
-## Status
-
-**Playable preview — `v0.4.0`.** Ape Escape **boots from the PS1 BIOS and
-plays** — through the intro, the title, and into gameplay, with dual-analog
-controller input including **L3/R3 stick clicks** (added in v0.0.3), a
-**controls fix** so the analog stick no longer spins the camera (v0.0.5),
-and working memory-card **save/load** (fixed in v0.0.2). It has not yet been verified all the way to the end,
-so treat it as a very playable preview rather than a certified full playthrough.
-
-| Area | State |
+| Feature | Status |
 |---|---|
-| Boot (real PS1 BIOS) | ✅ Boots to intro / title / gameplay |
-| Rendering | ✅ OpenGL (default) and Software backends |
-| Controller | ✅ DualShock analog (auto-bound; the net/movement scheme is dual-stick) |
-| Memory cards | ✅ Standard PS1 `.mcd` save/load |
-| Save states / rewind | ✅ Launcher-backed hotkeys and runtime state capture |
-| FMV / audio | ✅ MDEC video + XA/SPU audio (auto-skip FMV optional) |
-| Mods | ✅ Built-in catalog with Ape-specific and framework-owned enhancements |
-| Widescreen 16:9 / 21:9 / Adaptive | ✅ Opt-in 16:9, 21:9, and live-window adaptive modes |
-| Interpolated rendering | ✅ Opt-in display / 60 / 90 / 120 / 144 / 165 / 240 FPS |
-| Full playthrough | ⚠️ Not yet verified end-to-end |
+| macOS app | Apple Silicon and Intel builds |
+| Game boot and gameplay | Playable preview |
+| DualShock / dual-analog controls | Supported |
+| Memory-card save/load | Supported |
+| Save states and rewind | Available in the launcher |
+| Widescreen | Optional 16:9, 21:9 and Adaptive modes |
+| Interpolated rendering | Optional; requires OpenGL |
+| Built-in mod catalog | Optional features selected in the launcher |
+| Complete playthrough | Not yet verified end-to-end |
 
-### Built-in mods
+## Built-in mods
 
-The launcher's **Mods** page includes four Ape-specific bundled enhancements:
+**Every mod feature is disabled by default.** Enable only the features you want from the launcher's **Mods** page before starting the game. Keeping a mod in the catalog does not activate it.
 
-- **Ape Escape Widescreen** moves the existing game-specific enhancement out
-  of generic Video settings. Its picker offers **16:9**, **21:9**, and
-  **Adaptive** (live window aspect from 4:3 through 21:9).
-- **Ape Escape Frame Interpolation** redraws intermediate camera and model
-  transforms using the game drawing code. Display refresh and fixed output
-  rates leave simulation, timers, audio and input at their stock cadence.
-  Existing Frame Smoothing selections use interpolation automatically.
-- **PGXP** adds subpixel geometry and perspective-correct textures. Internal
-  resolution, texture filtering and FMV filtering remain configurable in Settings.
-- **Skip FMVs** ends movies through the game's normal completion path.
-- **Quick Gadget Select**, contributed by mthsk, recreates the later Ape
-  Escape quick gadget switching flow for the face-button gadget menu.
+- **Widescreen** — choose 16:9, 21:9 or Adaptive window aspect.
+- **Interpolated Rendering** — redraw intermediate camera and model transforms at a selected presentation rate. Game logic, timers, input and audio retain their normal cadence; requires OpenGL.
+- **PGXP Precision** — optional subpixel geometry and perspective-correct texture handling.
+- **Skip FMVs** — fast-forward full-motion videos through their normal game-side completion path.
+- **Quick Gadget Select** — a gadget-row shortcut inspired by later Ape Escape games.
+- **Gameplay Assist Pack** — independently toggle Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets. These assists only write during active gameplay and are opt-in.
 
-The widescreen mod uses Ape Escape's stable GTE projection-and-stretch path
-for a wider 3D field of view. HUD/UI proportion correction is enabled for its
-front ordering-table layer; remaining draw-distance and scene-culling limits
-are tracked in [`ISSUES.md`](ISSUES.md). With the mod disabled, 4:3
-presentation is unchanged.
+The widescreen mode can reveal distance pop-in inherited from the original game. An extended draw-distance feature is being investigated; it will only be added to the launcher once its distance-culling patch is identified and guarded, rather than presenting a toggle that has no effect. See [ISSUES.md](ISSUES.md).
 
-The launcher's Video page exposes **Supersampling (1x-4x)**,
-**Antialiasing**, and **Texture filtering**. On OpenGL, supersampling is true
-ordered-grid SSAA: geometry and shading are rasterized at a higher internal
-resolution and resolved to the window, while native PSX VRAM remains the
-authoritative game-visible buffer. Antialiasing controls the linear SSAA resolve
-and final presentation filtering; it is not RT64-style MSAA. Try **2x** first on
-a discrete GPU, keep texture filtering at **Nearest** for the authored PSX look,
-and return to 1x if a demanding scene misses full speed.
+The launcher's Video settings also expose internal resolution, antialiasing, texture filtering and FMV filtering. Higher internal resolutions can improve the final presentation, but returning to 1x can help on demanding scenes.
 
-## Playing
+## Playing on macOS
 
-1. Run `ApeEscapeRecomp.exe`. A launcher window opens.
-2. OpenBIOS is selected automatically. Optionally select your legally obtained
-   `SCPH1001.BIN` in the BIOS row.
-3. Set the game disc (a legally obtained Ape Escape (USA, SCUS-94423) image —
-   `.cue`+`.bin`, pick the `.cue`). Do **not** convert to a 2048-byte "cooked"
-   `.iso`; that discards the XA sectors used for FMV/audio.
-4. Adjust display options and select any features on the **Mods** page,
-   then press **Launch**.
+1. Download the ZIP or DMG that matches your Mac's processor from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-Mac/releases).
+2. Open **Ape Escape Recompiled.app**. The builds are ad-hoc signed and not notarized, so macOS may ask you to confirm that you want to open the app.
+3. In the launcher, select a legally obtained **Ape Escape (USA)** CUE/BIN disc image. Choose the **.cue** file; do not convert it to a cooked 2048-byte ISO, because the original disc sectors contain data used by FMV and audio playback.
+4. Optionally select a legally obtained retail **SCPH1001.BIN** BIOS. OpenBIOS is included and selected automatically by default.
+5. Open **Mods**, enable only the features you want, adjust video/controller settings, then launch.
 
-Ape Escape is a dual-analog title — the right stick swings the catch net — so an
-analog controller is strongly recommended. Any plugged pad is auto-bound and
-presented to the game as a DualShock; a keyboard folds onto the analog stick.
-The launcher exposes stick-deadzone and controller/keybind settings. The bundled
-10% deadzone default is calibrated against Ape Escape's native stick response;
-increase it slightly if a worn controller drifts, or lower it if small movements
-do not register. Save states and rewind are exposed through launcher hotkeys;
-by default F7 opens the save-state menu and F8 rewinds.
-The disc path, optional retail BIOS choice, and options are saved next to the
-exe. Clear the BIOS row to return to OpenBIOS.
+A DualShock-compatible analog controller is recommended: the left stick moves Spike and the right stick controls the net. Keyboard input is also available. Save data and settings live outside the app bundle in your user Application Support directory.
 
-## Development Rules
+## Project builds
 
-- Use the real recompiled BIOS and real hardware simulation in PSXRecomp.
-- No HLE BIOS shims, no stubs, no fake events, no hand-edited generated files.
-- Framework changes go in `mstan/psxrecomp`, not here.
-- Game binaries, generated code, memory cards, Ghidra databases, and build
-  outputs stay local.
-- See `CLAUDE.md` for project-specific rules.
+GitHub Actions checks packaging syntax and tests the built-in mod catalog on every push. Successful pushes to `master` publish the macOS Nightly; a `macos-v*` tag publishes a versioned release. The workflow builds Apple Silicon and Intel packages separately.
 
-## License
+The build uses an original-disc CHD kept outside the public source tree. CI can download it through the private Dropbox secrets `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` and `DROPBOX_REFRESH_TOKEN`, or through the optional `APE_ESCAPE_DISC_URL` secret. CI converts and verifies the disc in temporary storage; the CHD, CUE/BIN, boot executable and generated game translation are not committed or attached to releases.
 
-PolyForm Noncommercial 1.0.0. See `LICENSE`.
+Useful project files:
 
-Ape Escape is copyright Sony Computer Entertainment / SIE. This repository
-contains none of the game's original binaries or assets. Release packages
-include PCSX-Redux OpenBIOS under the MIT notice in
-`bios/OpenBIOS.LICENSE`; they contain no retail BIOS, game assets, or disc data.
-The release executable contains a statically recompiled (machine-translated)
-build of the game's code.
+- `game.toml` — game identity and runtime/recompiler/video/controller configuration.
+- `mods/preloaded/` — built-in optional features shown in the launcher.
+- `src/mods/` — trusted native plugin code for the game's features.
+- `ISSUES.md` — known behavior and reverse-engineering tasks.
+- `docs/AOT_OVERLAYS.md` — notes on ahead-of-time archive overlay support.
 
----
+## Credits and legal
 
-<p align="center">
-  <sub><b>R.A.I.D. — Retro AI Development</b> · a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
-</p>
+This nvd123-maintained project uses the [PSXRecomp framework](https://github.com/mstan/psxrecomp) and other open-source components; their notices and licenses remain with the corresponding source and release files. The Quick Gadget Select package retains its original contributor credit in its manifest.
 
-<p align="center">
-  <a href="https://discord.gg/Ad9BwSzctP"><img src=".github/raid-discord.png" alt="Join the Retro AI Development (R.A.I.D.) Discord" width="200"></a>
-</p>
-
-## v0.4.0 rendering update
-
-Game-code interpolation replaces Frame Smoothing while retaining saved rate selections. Adds internal-resolution presets, PGXP geometry/perspective correction and filtering options. Fixes the GPU foreground classification behind flickering black wall polygons. The memory-card menu uses its native layout in widescreen. Late beach-ball appearance remains under investigation.
-
-## macOS releases
-
-The macOS release workflow builds Apple Silicon (arm64) and Intel (x86_64)
-packages on GitHub-hosted runners, bundles the runtime and dynamic libraries
-into `Ape Escape Recompiled.app`, and publishes ZIP and DMG downloads.
-Every push to any branch triggers a build; successful pushes to `master` update
-the `macos-nightly` prerelease, and pushing a `macos-v*` tag publishes a tagged
-release. Other branches keep their packages as workflow artifacts. The app is
-ad-hoc signed, not Developer ID signed or notarized.
-
-The original disc image is a build input held outside the repository.
-CI downloads your single Dropbox CHD file
-`/ApeEscapeWii-private-assets/Ape Escape (USA).chd` to temporary runner storage.
-It uses MAME's `chdman` to extract the CHD into a matching CUE/BIN pair—the same
-conversion method already used by `ApeEscapeWii-privateassets`—then runs the
-pinned PSXRecomp `prepare_disc.py` on the CUE to verify the expected Redump
-size/MD5/SHA-1 and extract the boot executable recorded in `game.toml`.
-You do **not** need to upload the BIN and CUE separately; provide only the CHD.
-The disc, extracted BIN/CUE, boot EXE and generated game C are never committed
-or attached to releases.
-
-Choose one download method:
-
-**Recommended — keep the Dropbox file private.** Create a Dropbox API app with
-Full Dropbox access and enable the `files.content.read` scope. Authorize the app
-with Dropbox's OAuth code flow using `token_access_type=offline`, exchange the
-authorization code for a refresh token, then add these three values under
-**Settings → Secrets and variables → Actions**:
-
-- `DROPBOX_APP_KEY`
-- `DROPBOX_APP_SECRET`
-- `DROPBOX_REFRESH_TOKEN`
-
-The workflow exchanges the refresh token for a short-lived token and downloads
-that specific file by its Dropbox path. The secrets are not written to the
-repository. See [Dropbox's official offline OAuth guide](https://dropbox.tech/developers/using-oauth-2-0-with-offline-access).
-
-**Simpler alternative — Dropbox download link.** Set `APE_ESCAPE_DISC_URL` to a
-Dropbox link configured for anyone with the link to download the CHD; use
-`dl=1` to force download. This is easier to set up but anyone who obtains that
-URL can fetch the file, so the authenticated method above is preferable for
-strictly private storage. Keep the URL only in the GitHub Actions secret.
-
-Once one method is configured, run **Actions → macOS app and release → Run
-workflow**, or push a commit to any branch. The CHD must match the verified
-Ape Escape (USA) disc identity. Do not commit the disc image, generated C
-source, or the downloaded archive.
-
-The workflow caches compiler objects and pinned open-source overlay-tool downloads
-to speed up subsequent builds. It deliberately does not cache the generated game
-C source in this public repository. The first build can take substantially longer
-because it must generate the translation and compile the large runtime.
+**Ape Escape** and its original game code, art, audio and other content are the property of Sony Computer Entertainment / Sony Interactive Entertainment. This repository and its releases do not include the original disc image or a retail PlayStation BIOS. Use only game and BIOS files you are legally entitled to use. This project is unofficial and is not affiliated with Sony.

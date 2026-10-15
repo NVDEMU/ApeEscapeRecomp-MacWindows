@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 5) return fail("expected five package manifests");
+    if (manifest_count != 6) return fail("expected six package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -75,7 +75,11 @@ int main(int argc, char** argv) {
              "ape.frame-smoothing.display",
              "ape.fmv.skip",
              "ape.gadgets.quick-select",
-             "psx.pgxp"}) {
+             "psx.pgxp",
+             "ape.assist.infinite-lives",
+             "ape.assist.infinite-health",
+             "ape.assist.infinite-air",
+             "ape.assist.all-gadgets"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
     }
@@ -84,21 +88,41 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 5)
-        return fail("expected five package families");
+    if (manager.packages().size() != 6)
+        return fail("expected six package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 2 ||
-        default_plan.plugins.front().id != "ape.fmv.skip" ||
-        default_plan.plugins.back().id != "psx.pgxp") {
-        return fail("default catalog did not enable Skip FMVs and PGXP");
+        !default_plan.plugins.empty()) {
+        return fail("a mod feature was enabled by default");
     }
-    if (!manager.set_feature_enabled(
-            "ape.enhancement.skip-fmvs", "skip-fmvs", false, &error) ||
-        !manager.set_feature_enabled(
-            "psx.enhancement.pgxp", "pgxp", false, &error)) {
-        return fail(error);
+
+    // Every Gameplay Assist is a separate, default-off launcher feature.
+    for (const auto& [feature, plugin] :
+         {std::pair{"infinite-lives", "ape.assist.infinite-lives"},
+          std::pair{"infinite-health", "ape.assist.infinite-health"},
+          std::pair{"infinite-air", "ape.assist.infinite-air"},
+          std::pair{"all-gadgets", "ape.assist.all-gadgets"}}) {
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.gameplay-assists", feature, true, &error)) {
+            return fail(error);
+        }
+        const auto assist_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!assist_plan.ok || !assist_plan.writes.empty() ||
+            assist_plan.plugins.size() != 1 ||
+            assist_plan.plugins.front().id != plugin) {
+            return fail(std::string("wrong Gameplay Assist plugin for ") + feature);
+        }
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.gameplay-assists", feature, false, &error)) {
+            return fail(error);
+        }
+        const auto off_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!off_plan.ok || !off_plan.plugins.empty() ||
+            !off_plan.writes.empty()) {
+            return fail(std::string("Gameplay Assist remained active after disabling ") +
+                        feature);
+        }
     }
 
     if (!manager.set_feature_enabled(
@@ -192,10 +216,9 @@ int main(int argc, char** argv) {
         return fail("Quick Gadget Select patched guest code while disabled");
 
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 5 packages, default PGXP, "
+    std::cout << "Ape Escape preloaded mods: 6 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
-                 "Skip FMVs migrated from Settings, "
-                 "Quick Gadget Select default-off with a declarative "
-                 "slingshot-block patch, stock guest code untouched by default\n";
+                 "four independent Gameplay Assist toggles, "
+                 "Quick Gadget Select guarded patch, stock guest code untouched by default\n";
     return 0;
 }

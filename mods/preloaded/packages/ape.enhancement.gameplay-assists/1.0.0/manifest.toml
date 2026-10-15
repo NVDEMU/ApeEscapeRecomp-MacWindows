@@ -1,0 +1,56 @@
+format_version = 5
+id = "ape.enhancement.gameplay-assists"
+version = "1.0.0"
+name = "Ape Escape Gameplay Assist Pack"
+author = "nvd123"
+description = "Optional quality-of-life assists for Ape Escape. Each assist is an independent toggle and starts disabled."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94423"
+disc_sha256 = "1ae17e78ebb8c782c7c1785b0a0bd7b0ee28235b8a0c83c8df887129899a852a"
+
+[[feature]]
+id = "infinite-lives"
+name = "Infinite Lives"
+description = "Refill the lives counter during active gameplay. Disable this feature to use the game's normal life count."
+group = "Gameplay Assists"
+default_enabled = false
+
+[[plugin]]
+feature = "infinite-lives"
+id = "ape.assist.infinite-lives"
+
+[[feature]]
+id = "infinite-health"
+name = "Infinite Health"
+description = "Keep the health meter full during active gameplay. This does not bypass every instant-death hazard."
+group = "Gameplay Assists"
+default_enabled = false
+
+[[plugin]]
+feature = "infinite-health"
+id = "ape.assist.infinite-health"
+
+[[feature]]
+id = "infinite-air"
+name = "Infinite Air"
+description = "Keep the underwater air meter replenished during active gameplay."
+group = "Gameplay Assists"
+default_enabled = false
+
+[[plugin]]
+feature = "infinite-air"
+id = "ape.assist.infinite-air"
+
+[[feature]]
+id = "all-gadgets"
+name = "Unlock All Gadgets"
+description = "Unlock the game's gadget bitfield while playing. This does not mark monkeys or collectibles as completed."
+group = "Gameplay Assists"
+default_enabled = false
+
+[[plugin]]
+feature = "all-gadgets"
+id = "ape.assist.all-gadgets"

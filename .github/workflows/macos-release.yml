@@ -20,6 +20,8 @@ jobs:
         run: bash -n tools/package_macos.sh
       - name: Check calibrated controller defaults
         run: python3 tools/check_controller_defaults.py
+      - name: Check draw-distance audit tool syntax
+        run: python3 -m py_compile tools/audit_draw_distance.py
       - name: Check macOS install guide exists
         run: test -s packaging/macos/START_HERE.txt
 
@@ -165,6 +167,10 @@ jobs:
           test -s "apeescape/Ape Escape (USA).cue"
           test -s "apeescape/Ape Escape (USA).bin"
           test -s "apeescape/SCUS_944.23"
+
+      - name: Audit known culling sites for draw-distance research
+        continue-on-error: true
+        run: python3 tools/audit_draw_distance.py apeescape/SCUS_944.23
 
       - name: Extract disc executable and generate game translation on cache miss
         run: |

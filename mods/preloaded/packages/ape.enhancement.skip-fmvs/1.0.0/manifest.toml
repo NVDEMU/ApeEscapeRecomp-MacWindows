@@ -16,7 +16,7 @@ id = "skip-fmvs"
 name = "Skip FMVs"
 description = "Mute and rapidly advance full-motion videos instead of playing them in real time."
 group = "Gameplay"
-default_enabled = true
+default_enabled = false
 
 [[plugin]]
 feature = "skip-fmvs"

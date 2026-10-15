@@ -16,7 +16,7 @@ id = "pgxp"
 name = "PGXP Precision"
 description = "Reduce polygon wobble and texture warping. Precision is validated against the actual packet words. Turn off for the original geometry and texture placement."
 group = "Visual"
-default_enabled = true
+default_enabled = false
 
 [[option]]
 feature = "pgxp"
