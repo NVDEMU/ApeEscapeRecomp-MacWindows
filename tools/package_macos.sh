@@ -146,9 +146,19 @@ if command -v dylibbundler >/dev/null 2>&1; then
     -d "$FRAMEWORKS" -p @executable_path/../Frameworks
 fi
 
-# Ad-hoc signing permits local testing without a paid Developer ID certificate.
-# It is not notarization; the first launch instructions explain Gatekeeper.
-codesign --force --deep --sign - "$APP"
+# Ad-hoc sign actual Mach-O files individually, then seal the outer app.
+# --deep is deliberately avoided: the bundled Python/Tcl overlay toolchain
+# includes non-bundle directories (for example thread2.8.9) that Apple's
+# recursive signer incorrectly treats as nested code bundles.
+while IFS= read -r -d '' candidate; do
+  if file -b "$candidate" | grep -q 'Mach-O'; then
+    codesign --force --sign - --timestamp=none "$candidate"
+  fi
+done < <(find "$CONTENTS" -type f -print0)
+
+# Ad-hoc signing is not Developer ID signing or notarization. The first-run
+# instructions explain the expected Gatekeeper warning for downloaded builds.
+codesign --force --sign - --timestamp=none "$APP"
 
 # Keep a copy of the how-to beside the downloads as well as inside the bundle.
 cp "$ROOT/packaging/macos/START_HERE.txt" "$OUT_DIR/START_HERE-macos.txt"
