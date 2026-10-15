@@ -36,7 +36,7 @@ jobs:
         run: |
           if [ -z "$DISC_URL" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::macOS build skipped. Add the private archive URL as the APE_ESCAPE_DISC_URL Actions secret."
+            echo "::warning::macOS build skipped. Add a Dropbox direct-download URL for your CHD as the APE_ESCAPE_DISC_URL Actions secret."
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
               echo "::error::A manual or tagged release requires APE_ESCAPE_DISC_URL."
               exit 1
@@ -109,27 +109,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
-          curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$RUNNER_TEMP/ape-disc.zip"
-          unzip -q "$RUNNER_TEMP/ape-disc.zip" -d "$RUNNER_TEMP/ape-disc"
-          python3 - <<'PY'
-          import os, pathlib, re, shutil
-          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ape-disc"
-          cues = list(root.rglob("*.cue")) + list(root.rglob("*.CUE"))
-          bins = list(root.rglob("*.bin")) + list(root.rglob("*.BIN"))
-          cues = list(dict.fromkeys(cues))
-          bins = list(dict.fromkeys(bins))
-          if len(cues) != 1 or len(bins) != 1:
-              raise SystemExit(f"Expected one CUE and one BIN in the private archive; found {len(cues)} CUE and {len(bins)} BIN files.")
-          out = pathlib.Path("apeescape")
-          raw = cues[0].read_text(encoding="utf-8", errors="replace")
-          # Keep the expected config filename and normalise its data-track path.
-          if not re.search(r'^\s*FILE\s+["\']?[^\r\n]+?["\']?\s+BINARY', raw, re.I | re.M):
-              raise SystemExit("The CUE does not contain a FILE ... BINARY data track.")
-          raw = re.sub(r'(?im)^(\s*FILE\s+)(["\']?)[^\r\n"\']+\2(\s+BINARY)', r'\g<1>"Ape Escape (USA).bin"\g<3>', raw, count=1)
-          (out / "Ape Escape (USA).cue").write_text(raw, encoding="utf-8")
-          shutil.copy2(bins[0], out / "Ape Escape (USA).bin")
-          print("Prepared the private disc in the ignored apeescape/ working directory.")
-          PY
+          curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$RUNNER_TEMP/Ape Escape (USA).chd"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).chd"
+          echo "Downloaded CHD into runner temp storage; it will not be committed or attached to the release."
 
       - name: Build the recompiler and bundled OpenBIOS
         run: |
@@ -144,11 +126,18 @@ jobs:
             bash tools/regen_bios.sh --config bios/OpenBIOS.toml
           )
 
+      - name: Prepare the private CHD through pinned libchdr
+        run: |
+          set -euo pipefail
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd" --config game.toml
+          test -s "apeescape/Ape Escape (USA).cue"
+          test -s "apeescape/Ape Escape (USA).bin"
+          test -s "apeescape/SCUS_944.23"
+
       - name: Extract disc executable and generate game translation on cache miss
         run: |
           set -euo pipefail
           if [ ! -f generated/SCUS_944.23_dispatch.c ]; then
-            python3 psxrecomp-v4/tools/extract_psx_exe.py "apeescape/Ape Escape (USA).bin" SCUS_944.23 "apeescape/SCUS_944.23"
             psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
           else
             echo "Restored generated game translation from the Actions cache."
