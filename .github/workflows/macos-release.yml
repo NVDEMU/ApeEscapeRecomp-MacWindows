@@ -1,0 +1,201 @@
+name: macOS app and release
+
+on:
+  push:
+    branches: [master]
+    tags: ['macos-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ape-escape-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-assets:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        shell: bash
+        env:
+          DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+        run: |
+          if [ -z "$DISC_URL" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::macOS build skipped. Add the private archive URL as the APE_ESCAPE_DISC_URL Actions secret."
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
+              echo "::error::A manual or tagged release requires APE_ESCAPE_DISC_URL."
+              exit 1
+            fi
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  build-macos:
+    needs: check-assets
+    if: needs.check-assets.outputs.ready == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      BUILD_JOBS: 2
+      AOT_WORKERS: 2
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install macOS build tools
+        run: |
+          brew install cmake ninja sdl3 ccache dylibbundler
+
+      - name: Record pinned framework revision
+        id: pins
+        run: echo "framework=$(git -C psxrecomp-v4 rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache generated game translation
+        uses: actions/cache@v4
+        with:
+          path: generated/
+          key: ape-escape-generated-${{ hashFiles('game.toml', 'seeds/**') }}-${{ steps.pins.outputs.framework }}
+
+      - name: Cache compiler objects
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-macos-${{ matrix.arch }}-${{ hashFiles('CMakeLists.txt', 'game.toml', 'src/**', 'mods/**') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-macos-${{ matrix.arch }}-
+
+      - name: Download private disc archive
+        id: disc
+        env:
+          DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
+          curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$RUNNER_TEMP/ape-disc.zip"
+          unzip -q "$RUNNER_TEMP/ape-disc.zip" -d "$RUNNER_TEMP/ape-disc"
+          python3 - <<'PY'
+          import pathlib, re, shutil
+          root = pathlib.Path("$RUNNER_TEMP") / "ape-disc"
+          cues = list(root.rglob("*.cue")) + list(root.rglob("*.CUE"))
+          bins = list(root.rglob("*.bin")) + list(root.rglob("*.BIN"))
+          cues = list(dict.fromkeys(cues))
+          bins = list(dict.fromkeys(bins))
+          if len(cues) != 1 or len(bins) != 1:
+              raise SystemExit(f"Expected one CUE and one BIN in the private archive; found {len(cues)} CUE and {len(bins)} BIN files.")
+          out = pathlib.Path("apeescape")
+          raw = cues[0].read_text(encoding="utf-8", errors="replace")
+          # Keep the expected config filename and normalise its data-track path.
+          if not re.search(r'^\s*FILE\s+["\']?[^\r\n]+?["\']?\s+BINARY', raw, re.I | re.M):
+              raise SystemExit("The CUE does not contain a FILE ... BINARY data track.")
+          raw = re.sub(r'(?im)^(\s*FILE\s+)(["\']?)[^\r\n"\']+\2(\s+BINARY)', r'\g<1>"Ape Escape (USA).bin"\g<3>', raw, count=1)
+          (out / "Ape Escape (USA).cue").write_text(raw, encoding="utf-8")
+          shutil.copy2(bins[0], out / "Ape Escape (USA).bin")
+          print("Prepared the private disc in the ignored apeescape/ working directory.")
+          PY
+
+      - name: Build the recompiler and bundled OpenBIOS
+        run: |
+          set -euo pipefail
+          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build psxrecomp-v4/recompiler/build --parallel "$BUILD_JOBS" --target psxrecomp-game psxrecomp-bios
+          (
+            cd psxrecomp-v4
+            bash tools/regen_bios.sh --config bios/OpenBIOS.toml
+          )
+
+      - name: Extract disc executable and generate game translation on cache miss
+        run: |
+          set -euo pipefail
+          if [ ! -f generated/SCUS_944.23_dispatch.c ]; then
+            python3 psxrecomp-v4/tools/extract_psx_exe.py "apeescape/Ape Escape (USA).bin" SCUS_944.23 "apeescape/SCUS_944.23"
+            psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
+          else
+            echo "Restored generated game translation from the Actions cache."
+          fi
+          test -s generated/SCUS_944.23_dispatch.c
+
+      - name: Configure optimized macOS runtime
+        run: |
+          cmake -S . -B build-macos-release -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
+            -DPSX_DEBUG_TOOLS=OFF \
+            -DPSX_SDL_BACKEND=SDL3 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Compile the runtime and tests
+        run: |
+          cmake --build build-macos-release --parallel "$BUILD_JOBS" --target psx-runtime ape_stick_response_test ape_preloaded_mods_test
+          ctest --test-dir build-macos-release --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
+
+      - name: Package .app, DMG and ZIP
+        run: bash tools/package_macos.sh
+        env:
+          BUILD_DIR: ${{ github.workspace }}/build-macos-release
+          OUT_DIR: ${{ github.workspace }}/release-macos
+          AOT_WORKERS: 2
+
+      - name: Upload macOS release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ape-escape-macos-${{ matrix.arch }}
+          path: |
+            release-macos/*.zip
+            release-macos/*.dmg
+            release-macos/SHA256SUMS-macos-${{ matrix.arch }}.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  publish-release:
+    needs: [check-assets, build-macos]
+    if: needs.check-assets.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download both architecture packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ape-escape-macos-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish or update the macOS release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'macos-nightly' }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || 'Ape Escape Recompiled — macOS Nightly' }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          make_latest: false
+          fail_on_unmatched_files: true
+          body: |
+            macOS builds of Ape Escape Recompiled.
+
+            Includes Apple Silicon (arm64) and Intel (x86_64) packages. Download the ZIP or DMG for your Mac. This preview is ad-hoc signed, not Developer ID signed or notarized, so macOS may show a Gatekeeper warning on first launch.
+
+            The game disc and retail PlayStation BIOS are not included. The packaged OpenBIOS is MIT-licensed.
+          files: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS-macos-*.txt
