@@ -106,6 +106,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("exe", type=Path, help="SCUS_944.23 PS-EXE extracted by prepare_disc.py")
     parser.add_argument("--context", type=int, default=8, help="instructions around each known site")
+    parser.add_argument("--candidate-context", type=int, default=8, help="instructions around each candidate comparison")
     args = parser.parse_args()
     data = args.exe.read_bytes()
     header = PSX_EXE_HEADER if data[:8] == b"PS-X EXE" else 0
@@ -131,6 +132,32 @@ def main() -> int:
             continue
         start, stop = max(0, index - args.context), min(instruction_count, index + args.context + 1)
         print(f"\n--- around 0x{site:08X} ---")
+        for i in range(start, stop):
+            word = word_at(i)
+            marker = "=>" if i == index else "  "
+            print(f"{marker} 0x{pc_at(i):08X}  {word:08X}  {decode(pc_at(i), word)}")
+
+    # High-constant comparisons are only leads: nearby instructions make it
+    # easier to distinguish coordinate/texture limits from a possible depth
+    # cutoff. The repeated 0x200 family is grouped here because it may describe
+    # a shared loop rather than distance.
+    candidate_sites = (
+        0x800425D8, 0x80044F84, 0x8005A1B4,
+        0x8005A648, 0x8005A654, 0x8005A6A8, 0x8005A8B0,
+        0x8006ACB0, 0x8006ACC8, 0x8006E7D8,
+        0x80083D44, 0x80083D5C, 0x80083D7C, 0x80083D94,
+        0x80083DB4, 0x80083DCC, 0x80083E08, 0x80083E20,
+        0x80083E40, 0x80083E58, 0x80083E78, 0x80083E90,
+    )
+    print("\n--- context around high-immediate candidate comparisons (unverified) ---")
+    for site in candidate_sites:
+        index = index_at(site)
+        if not 0 <= index < instruction_count:
+            continue
+        start, stop = max(0, index - args.candidate_context), min(
+            instruction_count, index + args.candidate_context + 1
+        )
+        print(f"\n--- candidate around 0x{site:08X} ---")
         for i in range(start, stop):
             word = word_at(i)
             marker = "=>" if i == index else "  "
