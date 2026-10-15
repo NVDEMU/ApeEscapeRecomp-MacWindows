@@ -52,7 +52,7 @@ jobs:
           fi
 
   build-macos:
-    needs: check-assets
+    needs: [lint, check-assets]
     if: needs.check-assets.outputs.ready == 'true'
     strategy:
       fail-fast: false
@@ -86,12 +86,6 @@ jobs:
         id: pins
         run: echo "framework=$(git -C psxrecomp-v4 rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache generated game translation
-        uses: actions/cache@v4
-        with:
-          path: generated/
-          key: ape-escape-generated-${{ hashFiles('game.toml', 'seeds/**') }}-${{ steps.pins.outputs.framework }}
-
       - name: Cache compiler objects
         uses: actions/cache@v4
         with:
@@ -108,7 +102,7 @@ jobs:
           restore-keys: |
             overlay-downloads-${{ matrix.arch }}-
 
-      - name: Download private disc archive
+      - name: Download original disc from Dropbox
         id: disc
         env:
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
