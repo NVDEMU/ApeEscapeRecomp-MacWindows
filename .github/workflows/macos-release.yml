@@ -20,6 +20,8 @@ jobs:
         run: bash -n tools/package_macos.sh
       - name: Check calibrated controller defaults
         run: python3 tools/check_controller_defaults.py
+      - name: Check Extended Draw Distance catalog and guarded sites
+        run: python3 tools/check_draw_distance_defaults.py
       - name: Check draw-distance audit tool syntax
         run: python3 -m py_compile tools/audit_draw_distance.py
       - name: Check macOS install guide exists

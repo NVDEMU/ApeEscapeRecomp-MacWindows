@@ -1,0 +1,23 @@
+format_version = 5
+id = "ape.enhancement.extended-draw-distance"
+version = "1.0.0"
+name = "Ape Escape Extended Draw Distance"
+author = "nvd123"
+description = "Experimental far-geometry preservation using guarded ordering-table depth clamps. Disabled by default."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94423"
+disc_sha256 = "1ae17e78ebb8c782c7c1785b0a0bd7b0ee28235b8a0c83c8df887129899a852a"
+
+[[feature]]
+id = "extended-draw-distance"
+name = "Extended Draw Distance"
+description = "Clamp traced GTE depth buckets into the final safe ordering-table range instead of dropping some far geometry. Experimental; may change the original look or increase rendering work."
+group = "Graphics Enhancements"
+default_enabled = false
+
+[[plugin]]
+feature = "extended-draw-distance"
+id = "ape.draw-distance.extended"

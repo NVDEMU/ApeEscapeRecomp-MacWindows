@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 6) return fail("expected six package manifests");
+    if (manifest_count != 7) return fail("expected seven package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -79,7 +79,8 @@ int main(int argc, char** argv) {
              "ape.assist.infinite-lives",
              "ape.assist.infinite-health",
              "ape.assist.infinite-air",
-             "ape.assist.all-gadgets"}) {
+             "ape.assist.all-gadgets",
+             "ape.draw-distance.extended"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
     }
@@ -88,8 +89,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 6)
-        return fail("expected six package families");
+    if (manager.packages().size() != 7)
+        return fail("expected seven package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -122,6 +123,31 @@ int main(int argc, char** argv) {
             !off_plan.writes.empty()) {
             return fail(std::string("Gameplay Assist remained active after disabling ") +
                         feature);
+        }
+    }
+
+    // Extended Draw Distance is a separate, default-off feature.
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.extended-draw-distance", "extended-draw-distance",
+            true, &error)) {
+        return fail(error);
+    }
+    {
+        const auto plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!plan.ok || !plan.writes.empty() || plan.plugins.size() != 1 ||
+            plan.plugins.front().id != "ape.draw-distance.extended") {
+            return fail("wrong Extended Draw Distance plugin plan");
+        }
+    }
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.extended-draw-distance", "extended-draw-distance",
+            false, &error)) {
+        return fail(error);
+    }
+    {
+        const auto plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!plan.ok || !plan.plugins.empty() || !plan.writes.empty()) {
+            return fail("Extended Draw Distance remained active after disabling");
         }
     }
 
@@ -216,9 +242,9 @@ int main(int argc, char** argv) {
         return fail("Quick Gadget Select patched guest code while disabled");
 
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 6 packages, every feature default-off, "
+    std::cout << "Ape Escape preloaded mods: 7 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
-                 "four independent Gameplay Assist toggles, "
+                 "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
                  "Quick Gadget Select guarded patch, stock guest code untouched by default\n";
     return 0;
 }

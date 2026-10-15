@@ -56,6 +56,13 @@ config knob (an opt-in, since a larger draw distance costs some performance and
 changes the authored look). Same investigation shape as #1/#2 — deferred with
 them.
 
+**First opt-in pass (2026-10-15):** The new Extended Draw Distance mod clamps ten
+traced GTE `SZ3` depth-bucket producer sites with expected-instruction guards.
+It avoids raising the game's ordering-table bounds and remains disabled by
+default. This targets far primitives dropped at the ordering-table depth limit;
+it does **not** remove every separate game-side far-clip test, so this issue
+stays open until the effect and any remaining pop-in are checked in gameplay.
+
 ---
 
 ## #4 — Memory-card save/load does not complete — FIXED (v0.0.2)

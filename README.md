@@ -33,7 +33,7 @@ The game boots through the introduction and title screens into playable levels. 
 - **Quick Gadget Select** — a gadget-row shortcut inspired by later Ape Escape games.
 - **Gameplay Assist Pack** — independently toggle Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets. These assists only write during active gameplay and are opt-in.
 
-The widescreen mode can reveal distance pop-in inherited from the original game. An extended draw-distance feature is being investigated; it will only be added to the launcher once its distance-culling patch is identified and guarded, rather than presenting a toggle that has no effect. See [ISSUES.md](ISSUES.md).
+The widescreen mode can reveal distance pop-in inherited from the original game. The optional **Extended Draw Distance** mod clamps ten traced GTE depth-bucket paths into the last safe ordering-table range rather than raising the game's bounds. It is experimental: it may change the original look or increase rendering work, and other game-side culling can still cause pop-in. Keep it off for stock behavior, and disable it if you see visual glitches. See [ISSUES.md](ISSUES.md) for remaining work.
 
 The launcher's Video settings also expose internal resolution, antialiasing, texture filtering and FMV filtering. Higher internal resolutions can improve the final presentation, but returning to 1x can help on demanding scenes.
 

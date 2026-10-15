@@ -258,3 +258,68 @@ vaddr_base  = "0x80010000"
 # Address normalization: KSEG masking only (game loads contiguously, no remaps).
 [audit.normalize]
 kseg_mask = "0x1FFFFFFF"
+
+
+# Experimental Extended Draw Distance. These guarded main-EXE sites read
+# GTE SZ3, shift it into an ordering-table depth bucket, and store that bucket.
+# Clamp SZ3 before the shift so the resulting bucket never exceeds 0xFFF.
+# Runtime activation is opt-in; the framework leaves the clamp off otherwise.
+[[draw_distance.clamp]]
+address = "0x800591DC"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x80069A24"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006ADE0"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006D2B8"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006D868"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006DE28"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006E488"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006E7AC"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8006F134"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
+
+[[draw_distance.clamp]]
+address = "0x8007074C"
+expected = "0x000C6083" # sra t4,t4,2 after MFC2 t4,SZ3
+reg = 12
+max = 0x3FFC
