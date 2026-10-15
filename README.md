@@ -164,19 +164,39 @@ push builds update the `macos-nightly` prerelease; pushing a `macos-v*` tag
 publishes a tagged release. The app is ad-hoc signed, not Developer ID signed
 or notarized.
 
-The original disc image is a private build input and is never committed to this
-repository. To enable the workflow:
+The original disc image is a build input held outside the repository.
+CI downloads your Dropbox file `/ApeEscapeWii-private-assets/Ape Escape (USA).chd`
+to temporary runner storage, then the pinned PSXRecomp `prepare_disc.py`
+tool converts it and verifies the extracted track against the expected Redump
+MD5/SHA-1/size recorded in `game.toml`. The disc, extracted BIN/CUE, boot EXE
+and generated game C are never committed or attached to releases.
 
-1. Make a ZIP containing your legally obtained Ape Escape `.cue` and `.bin`
-   files and store it in private file storage.
-2. In this repository, open **Settings → Secrets and variables → Actions** and
-   add the repository secret `APE_ESCAPE_DISC_URL`. Its value must be a
-   direct-download URL for that ZIP that GitHub Actions can fetch without an
-   interactive login. For Dropbox, use a direct-download link (usually
-   `?dl=1`) and keep the URL only in the Actions secret.
-3. Run **Actions → macOS app and release → Run workflow**, or push a commit to
-   `master`. The archive must contain exactly one `.cue` and one `.bin`.
-   Do not commit the disc image, generated C source, or the downloaded archive.
+Choose one download method:
+
+**Recommended — keep the Dropbox file private.** Create a Dropbox API app with
+Full Dropbox access and enable the `files.content.read` scope. Authorize the app
+with Dropbox's OAuth code flow using `token_access_type=offline`, exchange the
+authorization code for a refresh token, then add these three values under
+**Settings → Secrets and variables → Actions**:
+
+- `DROPBOX_APP_KEY`
+- `DROPBOX_APP_SECRET`
+- `DROPBOX_REFRESH_TOKEN`
+
+The workflow exchanges the refresh token for a short-lived token and downloads
+that specific file by its Dropbox path. The secrets are not written to the
+repository. See [Dropbox's official offline OAuth guide](https://dropbox.tech/developers/using-oauth-2-0-with-offline-access).
+
+**Simpler alternative — Dropbox download link.** Set `APE_ESCAPE_DISC_URL` to a
+Dropbox link configured for anyone with the link to download the CHD; use
+`dl=1` to force download. This is easier to set up but anyone who obtains that
+URL can fetch the file, so the authenticated method above is preferable for
+strictly private storage. Keep the URL only in the GitHub Actions secret.
+
+Once one method is configured, run **Actions → macOS app and release → Run
+workflow**, or push a commit to `master`. The CHD must match the verified
+Ape Escape (USA) disc identity. Do not commit the disc image, generated C
+source, or the downloaded archive.
 
 The workflow caches generated game translation and compiler objects to speed
 up subsequent builds. The first build can take substantially longer because it
