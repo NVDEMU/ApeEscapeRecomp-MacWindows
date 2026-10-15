@@ -170,7 +170,7 @@ jobs:
 
       - name: Audit known culling sites for draw-distance research
         continue-on-error: true
-        run: python3 tools/audit_draw_distance.py apeescape/SCUS_944.23
+        run: python3 tools/audit_draw_distance.py apeescape/SCUS_944.23 --candidate-context 40
 
       - name: Extract disc executable and generate game translation on cache miss
         run: |
