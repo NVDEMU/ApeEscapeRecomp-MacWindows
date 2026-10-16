@@ -6,9 +6,10 @@ our logo, selects a game-specific palette, and adds the repo-owned updater actio
 """
 from __future__ import annotations
 import argparse
-import shutil
 from pathlib import Path
 import sys
+import struct
+import zlib
 
 SOURCE = Path("src/common/backends/imgui/launcher_imgui.cpp")
 INCLUDE_ANCHOR = '#include "launcher_sdlcompat.h"   // pulls the right SDL header + event shim'
@@ -18,10 +19,156 @@ MARKER = "launch_nvd123_nightly_updater"
 THEME_HEADER = Path("src/common/launcher_theme.h")
 PROFILE_HEADER = Path("src/consoles/psx/psx_profile.h")
 LOGO_SOURCE = Path("recomp/launcher/ape_escape_logo.png")
-LOGO_DEST = Path("assets/common/img/ape_escape_logo.png")
+LOGO_DEST = Path("assets/consoles/psx/img/brand_psx.tga")
 APE_THEME_MARKER = "launcher_theme_ape_escape"
 APE_THEME_DISPATCH_MARKER = 'strcmp(name, "ape_escape")'
 BRAND_SIZE_MARKER = "Ape Escape stacked-logo sizing"
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _paeth_predictor(left: int, up: int, upper_left: int) -> int:
+    p = left + up - upper_left
+    pa, pb, pc = abs(p - left), abs(p - up), abs(p - upper_left)
+    if pa <= pb and pa <= pc:
+        return left
+    if pb <= pc:
+        return up
+    return upper_left
+
+
+def png_to_tga(data: bytes) -> bytes:
+    """Convert an 8-bit, non-interlaced PNG to a 32-bit alpha-preserving TGA.
+
+    This deliberately uses only Python's standard library, so branding is
+    generated consistently on Windows and macOS CI without external tools.
+    PNG scanline filters and grayscale, RGB, indexed, grayscale-alpha, and
+    RGBA inputs are supported.
+    """
+    if not data.startswith(PNG_SIGNATURE):
+        raise ValueError("logo source is not a PNG file")
+
+    width = height = bit_depth = color_type = interlace = None
+    palette = transparency = None
+    image_chunks = []
+    offset = len(PNG_SIGNATURE)
+    saw_end = False
+    while offset + 12 <= len(data):
+        length = struct.unpack(">I", data[offset:offset + 4])[0]
+        chunk_type = data[offset + 4:offset + 8]
+        offset += 8
+        if offset + length + 4 > len(data):
+            raise ValueError("logo PNG contains a truncated chunk")
+        payload = data[offset:offset + length]
+        offset += length + 4  # payload plus CRC
+        if chunk_type == b"IHDR":
+            if length != 13:
+                raise ValueError("logo PNG has an invalid IHDR chunk")
+            width, height, bit_depth, color_type, compression, filtering, interlace = struct.unpack(
+                ">IIBBBBB", payload
+            )
+            if compression != 0 or filtering != 0:
+                raise ValueError("logo PNG uses an unsupported compression or filter method")
+        elif chunk_type == b"PLTE":
+            palette = payload
+        elif chunk_type == b"tRNS":
+            transparency = payload
+        elif chunk_type == b"IDAT":
+            image_chunks.append(payload)
+        elif chunk_type == b"IEND":
+            saw_end = True
+            break
+
+    if not saw_end or width is None or height is None or not image_chunks:
+        raise ValueError("logo PNG is missing required image data")
+    if width < 1 or height < 1 or width > 65535 or height > 65535:
+        raise ValueError("logo dimensions cannot be represented in a TGA file")
+    if bit_depth != 8 or interlace != 0 or color_type not in (0, 2, 3, 4, 6):
+        raise ValueError(
+            "logo PNG must use 8-bit, non-interlaced grayscale, RGB, indexed, or RGBA pixels"
+        )
+    if color_type == 3 and (not palette or len(palette) % 3 != 0):
+        raise ValueError("logo PNG has an invalid indexed-color palette")
+
+    bytes_per_pixel = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color_type]
+    stride = width * bytes_per_pixel
+    raw = zlib.decompress(b"".join(image_chunks))
+    expected_size = height * (stride + 1)
+    if len(raw) != expected_size:
+        raise ValueError("logo PNG decompressed to an unexpected size")
+
+    rows = []
+    previous = bytearray(stride)
+    pos = 0
+    for _ in range(height):
+        filter_type = raw[pos]
+        scanline = bytearray(raw[pos + 1:pos + 1 + stride])
+        pos += stride + 1
+        if filter_type == 1:  # Sub
+            for i in range(stride):
+                left = scanline[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+                scanline[i] = (scanline[i] + left) & 0xFF
+        elif filter_type == 2:  # Up
+            for i in range(stride):
+                scanline[i] = (scanline[i] + previous[i]) & 0xFF
+        elif filter_type == 3:  # Average
+            for i in range(stride):
+                left = scanline[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+                scanline[i] = (scanline[i] + ((left + previous[i]) // 2)) & 0xFF
+        elif filter_type == 4:  # Paeth
+            for i in range(stride):
+                left = scanline[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+                up = previous[i]
+                upper_left = previous[i - bytes_per_pixel] if i >= bytes_per_pixel else 0
+                scanline[i] = (
+                    scanline[i] + _paeth_predictor(left, up, upper_left)
+                ) & 0xFF
+        elif filter_type != 0:
+            raise ValueError(f"logo PNG uses unknown scanline filter {filter_type}")
+        rows.append(scanline)
+        previous = scanline
+
+    pixels = bytearray(width * height * 4)
+    out = 0
+    for row in rows:
+        for x in range(width):
+            i = x * bytes_per_pixel
+            if color_type == 6:  # RGBA
+                red, green, blue, alpha = row[i:i + 4]
+            elif color_type == 2:  # RGB
+                red, green, blue = row[i:i + 3]
+                alpha = 255
+                if transparency and len(transparency) == 6:
+                    tr, tg, tb = struct.unpack(">HHH", transparency)
+                    if (red, green, blue) == (tr, tg, tb):
+                        alpha = 0
+            elif color_type == 4:  # grayscale + alpha
+                red = green = blue = row[i]
+                alpha = row[i + 1]
+            elif color_type == 0:  # grayscale
+                red = green = blue = row[i]
+                alpha = 255
+                if transparency and len(transparency) == 2:
+                    transparent_gray = struct.unpack(">H", transparency)[0]
+                    if red == transparent_gray:
+                        alpha = 0
+            else:  # indexed color
+                index = row[i]
+                palette_offset = index * 3
+                if palette_offset + 3 > len(palette):
+                    raise ValueError("logo PNG references a missing palette color")
+                red, green, blue = palette[palette_offset:palette_offset + 3]
+                alpha = transparency[index] if transparency and index < len(transparency) else 255
+            pixels[out:out + 4] = bytes((blue, green, red, alpha))
+            out += 4
+
+    # TGA descriptor 0x28 means top-left origin and 8 bits of alpha.
+    header = struct.pack(
+        "<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0,
+        width, height, 32, 0x28
+    )
+    return header + pixels
+
 
 APE_THEME = r'''// Ape Escape: saturated sky-blue panels, yellow primary actions and a clean
 // no-scanline surface inspired by the original game's bright logo.
@@ -253,8 +400,9 @@ def main() -> int:
     profile_edits = (
         ('/* theme    */ "psx",', '/* theme    */ "ape_escape",'),
         ('gi->theme    = "psx";', 'gi->theme    = "ape_escape";'),
-        ('/* brand             */ "brand_psx.tga",',
-         '/* brand             */ "ape_escape_logo.png",'),
+        # Migrate any earlier patch state back to the manifest-owned PSX asset.
+        ('/* brand             */ "ape_escape_logo.png",',
+         '/* brand             */ "brand_psx.tga",'),
     )
     profile_changed = False
     for old, new in profile_edits:
@@ -269,20 +417,26 @@ def main() -> int:
 
     required_profile_tokens = ('/* theme    */ "ape_escape",',
                                'gi->theme    = "ape_escape";',
-                               '/* brand             */ "ape_escape_logo.png",')
+                               '/* brand             */ "brand_psx.tga",')
     if any(token not in profile_text for token in required_profile_tokens):
         return fail("Ape Escape PSX profile branding is incomplete.", 1)
     if profile_changed:
         profile_path.write_text(profile_text, encoding="utf-8")
 
-    # The launcher package flattens common images into assets/img. Keep the
-    # source logo in this repo and copy it into the pinned UI only while building.
+    # The pinned launcher's asset manifest explicitly stages the PSX brand slot
+    # from assets/consoles/psx/img/brand_psx.tga. Generate that exact runtime
+    # asset from the transparent source PNG; arbitrary new filenames are ignored
+    # by the manifest, which is why the former PNG never appeared in the header.
+    try:
+        logo_tga = png_to_tga(logo_source.read_bytes())
+    except (OSError, ValueError, zlib.error, struct.error) as exc:
+        return fail(f"Could not prepare the transparent Ape Escape logo: {exc}", 2)
     logo_dest.parent.mkdir(parents=True, exist_ok=True)
-    same_logo = logo_dest.is_file() and logo_dest.read_bytes() == logo_source.read_bytes()
+    same_logo = logo_dest.is_file() and logo_dest.read_bytes() == logo_tga
     if not same_logo:
         if args.check:
-            return fail("Ape Escape logo asset has not been staged in recomp-ui.", 1)
-        shutil.copyfile(logo_source, logo_dest)
+            return fail("Ape Escape TGA logo has not been staged in the PSX brand asset slot.", 1)
+        logo_dest.write_bytes(logo_tga)
 
     if args.check:
         print("Ape Escape theme, top-left logo and Nightly updater patches are present.")
