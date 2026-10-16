@@ -1,211 +1,185 @@
-# Ape Escape (North American release) Monkepedia index.
-# Columns: stage_id, stage_name, entry_index, displayed_name, alternate_regional_label.
-# Unknown labels remain explicit placeholders; personality prose and extracted profile art are omitted.
-# Source: https://apeescape.fandom.com/wiki/Monkepedia; validate names against SCUS-94423 before adding profile details.
-0	Fossil Field	1	Noonan	Blair
-0	Fossil Field	2	Jorjy	Cruise
-0	Fossil Field	3	Nati	Fruity
-0	Fossil Field	4	Unverified entry 04	
-1	Primordial Ooze	1	Shay	B.C.
-1	Primordial Ooze	2	Dr. Monk	Tum Tum
-1	Primordial Ooze	3	Ah-choo	Sleepy
-1	Primordial Ooze	4	Unverified entry 04	
-1	Primordial Ooze	5	Unverified entry 05	
-1	Primordial Ooze	6	Unverified entry 06	
-2	Molten Lava	1	Scotty	Chimpo
-2	Molten Lava	2	Coco	Farmer
-2	Molten Lava	3	Moggan	
-2	Molten Lava	4	J. Thomas	Twitcher
-2	Molten Lava	5	Mattie	
-2	Molten Lava	6	Barney	
-2	Molten Lava	7	Rocky	
-10	Thick Jungle	1	Marquez	Spy
-10	Thick Jungle	2	Livingston	Clumsy
-10	Thick Jungle	3	George	IBall
-10	Thick Jungle	4	Maki	Colt
-10	Thick Jungle	5	Unverified entry 05	
-10	Thick Jungle	6	Unverified entry 06	
-10	Thick Jungle	7	Unverified entry 07	
-10	Thick Jungle	8	Unverified entry 08	
-10	Thick Jungle	9	Unverified entry 09	
-10	Thick Jungle	10	Unverified entry 10	
-10	Thick Jungle	11	Unverified entry 11	
-10	Thick Jungle	12	Unverified entry 12	
-10	Thick Jungle	13	Unverified entry 13	
-10	Thick Jungle	14	Unverified entry 14	
-11	Dark Ruins	1	Kyle	Dustbin
-11	Dark Ruins	2	Stan	Indiana
-11	Dark Ruins	3	Kenny	Colt
-11	Dark Ruins	4	Papou	Mash
-11	Dark Ruins	5	Bernt	Zzap
-11	Dark Ruins	6	Trance	Dodo
-11	Dark Ruins	7	Unverified entry 07	
-11	Dark Ruins	8	Unverified entry 08	
-11	Dark Ruins	9	Unverified entry 09	
-11	Dark Ruins	10	Unverified entry 10	
-11	Dark Ruins	11	Unverified entry 11	
-11	Dark Ruins	12	Unverified entry 12	
-11	Dark Ruins	13	Unverified entry 13	
-12	Cryptic Relics	1	Bazzle	Miller
-12	Cryptic Relics	2	Freeto	Quiff
-12	Cryptic Relics	3	Troopa	Street
-12	Cryptic Relics	4	Stymie	Van Gogh
-12	Cryptic Relics	5	Unverified entry 05	
-12	Cryptic Relics	6	Unverified entry 06	
-12	Cryptic Relics	7	Unverified entry 07	
-12	Cryptic Relics	8	Unverified entry 08	
-20	Crabby Beach	1	Cool Blue	Jetlag
-20	Crabby Beach	2	Sandy	Shazza
-20	Crabby Beach	3	Shell E.	Spank
-20	Crabby Beach	4	Gidget	Fossil
-20	Crabby Beach	5	Puka	
-20	Crabby Beach	6	Moko	
-20	Crabby Beach	7	Unverified entry 07	
-20	Crabby Beach	8	Unverified entry 08	
-21	Coral Cave	1	Chip	Gossip
-21	Coral Cave	2	Oreo	Chum
-21	Coral Cave	3	Puddles	Sensei
-21	Coral Cave	4	Kalama	Mash
-21	Coral Cave	5	Unverified entry 05	
-21	Coral Cave	6	Unverified entry 06	
-21	Coral Cave	7	Unverified entry 07	
-21	Coral Cave	8	Unverified entry 08	
-22	Dexter's Island	1	Unverified entry 01	
-22	Dexter's Island	2	Unverified entry 02	
-22	Dexter's Island	3	Unverified entry 03	
-22	Dexter's Island	4	Unverified entry 04	
-22	Dexter's Island	5	Unverified entry 05	
-22	Dexter's Island	6	Unverified entry 06	
-22	Dexter's Island	7	Unverified entry 07	
-22	Dexter's Island	8	Unverified entry 08	
-22	Dexter's Island	9	Unverified entry 09	
-22	Dexter's Island	10	Unverified entry 10	
-22	Dexter's Island	11	Unverified entry 11	
-30	Snowy Mammoth	1	Popcicle	
-30	Snowy Mammoth	2	Iced	
-30	Snowy Mammoth	3	Rickets	
-30	Snowy Mammoth	4	Denggoy	
-30	Snowy Mammoth	5	Unverified entry 05	
-30	Snowy Mammoth	6	Unverified entry 06	
-31	Frosty Retreat	1	Storm	
-31	Frosty Retreat	2	Qube	
-31	Frosty Retreat	3	Ranix	
-31	Frosty Retreat	4	Sharpe	
-31	Frosty Retreat	5	Diamond	
-31	Frosty Retreat	6	Curtis	
-31	Frosty Retreat	7	Florian	
-31	Frosty Retreat	8	Columbobo	
-31	Frosty Retreat	9	Marr	
-32	Hot Springs	1	Punky	Bert
-32	Hot Springs	2	Ameego	Lens
-32	Hot Springs	3	Unverified entry 03	
-32	Hot Springs	4	Unverified entry 04	
-32	Hot Springs	5	Unverified entry 05	
-32	Hot Springs	6	Unverified entry 06	
-32	Hot Springs	7	Unverified entry 07	
-32	Hot Springs	8	Unverified entry 08	
-32	Hot Springs	9	Unverified entry 09	
-40	Sushi Temple	1	Taku	MC
-40	Sushi Temple	2	Rocka	Vinyl
-40	Sushi Temple	3	Unverified entry 03	
-40	Sushi Temple	4	Unverified entry 04	
-40	Sushi Temple	5	Unverified entry 05	
-40	Sushi Temple	6	Unverified entry 06	
-40	Sushi Temple	7	Unverified entry 07	
-40	Sushi Temple	8	Unverified entry 08	
-40	Sushi Temple	9	Unverified entry 09	
-40	Sushi Temple	10	Unverified entry 10	
-40	Sushi Temple	11	Unverified entry 11	
-40	Sushi Temple	12	Unverified entry 12	
-41	Wabi Sabi Wall	1	Minky	Meg
-41	Wabi Sabi Wall	2	Zobbro	PAL
-41	Wabi Sabi Wall	3	Unverified entry 03	
-41	Wabi Sabi Wall	4	Unverified entry 04	
-41	Wabi Sabi Wall	5	Unverified entry 05	
-41	Wabi Sabi Wall	6	Unverified entry 06	
-41	Wabi Sabi Wall	7	Unverified entry 07	
-41	Wabi Sabi Wall	8	Unverified entry 08	
-41	Wabi Sabi Wall	9	Unverified entry 09	
-41	Wabi Sabi Wall	10	Unverified entry 10	
-42	Crumbling Castle	1	Robart	CD
-42	Crumbling Castle	2	Igor	Ali
-42	Crumbling Castle	3	Naners	Mum
-42	Crumbling Castle	4	Unverified entry 04	
-42	Crumbling Castle	5	Unverified entry 05	
-42	Crumbling Castle	6	Unverified entry 06	
-42	Crumbling Castle	7	Unverified entry 07	
-42	Crumbling Castle	8	Unverified entry 08	
-42	Crumbling Castle	9	Unverified entry 09	
-42	Crumbling Castle	10	Unverified entry 10	
-42	Crumbling Castle	11	Unverified entry 11	
-42	Crumbling Castle	12	Unverified entry 12	
-42	Crumbling Castle	13	Unverified entry 13	
-42	Crumbling Castle	14	Unverified entry 14	
-42	Crumbling Castle	15	Unverified entry 15	
-42	Crumbling Castle	16	Unverified entry 16	
-42	Crumbling Castle	17	Unverified entry 17	
-42	Crumbling Castle	18	Unverified entry 18	
-42	Crumbling Castle	19	Unverified entry 19	
-42	Crumbling Castle	20	Unverified entry 20	
-50	City Park	1	Unverified entry 01	
-50	City Park	2	Unverified entry 02	
-50	City Park	3	Unverified entry 03	
-50	City Park	4	Unverified entry 04	
-50	City Park	5	Unverified entry 05	
-50	City Park	6	Unverified entry 06	
-50	City Park	7	Unverified entry 07	
-50	City Park	8	Unverified entry 08	
-50	City Park	9	Unverified entry 09	
-50	City Park	10	Unverified entry 10	
-50	City Park	11	Unverified entry 11	
-50	City Park	12	Unverified entry 12	
-50	City Park	13	Unverified entry 13	
-51	Specter's Factory	1	Big Show	Itchy
-51	Specter's Factory	2	Dreos	Yaffle
-51	Specter's Factory	3	Reznor	Chunky
-51	Specter's Factory	4	Hurt	Grudge
-51	Specter's Factory	5	Urkel	Plonker
-51	Specter's Factory	6	Vanilla S	Agent 4125
-51	Specter's Factory	7	Radd	Pertwee
-51	Specter's Factory	8	Shimbo	Quentin
-51	Specter's Factory	9	Unverified entry 09	
-51	Specter's Factory	10	Unverified entry 10	
-52	TV Tower	1	Unverified entry 01	
-52	TV Tower	2	Unverified entry 02	
-52	TV Tower	3	Unverified entry 03	
-52	TV Tower	4	Unverified entry 04	
-52	TV Tower	5	Unverified entry 05	
-52	TV Tower	6	Unverified entry 06	
-52	TV Tower	7	Unverified entry 07	
-52	TV Tower	8	Unverified entry 08	
-52	TV Tower	9	Unverified entry 09	
-52	TV Tower	10	Unverified entry 10	
-52	TV Tower	11	Unverified entry 11	
-52	TV Tower	12	Unverified entry 12	
-60	Monkey Madness	1	Goopo	Curtis
-60	Monkey Madness	2	Porto	Slime
-60	Monkey Madness	3	Slam	Junior
-60	Monkey Madness	4	Unverified entry 04	
-60	Monkey Madness	5	Unverified entry 05	
-60	Monkey Madness	6	Unverified entry 06	
-60	Monkey Madness	7	Unverified entry 07	
-60	Monkey Madness	8	Unverified entry 08	
-60	Monkey Madness	9	Unverified entry 09	
-60	Monkey Madness	10	Unverified entry 10	
-60	Monkey Madness	11	Unverified entry 11	
-60	Monkey Madness	12	Unverified entry 12	
-60	Monkey Madness	13	Unverified entry 13	
-60	Monkey Madness	14	Unverified entry 14	
-60	Monkey Madness	15	Unverified entry 15	
-60	Monkey Madness	16	Unverified entry 16	
-60	Monkey Madness	17	Unverified entry 17	
-60	Monkey Madness	18	Unverified entry 18	
-60	Monkey Madness	19	Unverified entry 19	
-60	Monkey Madness	20	Unverified entry 20	
-60	Monkey Madness	21	Unverified entry 21	
-60	Monkey Madness	22	Unverified entry 22	
-60	Monkey Madness	23	Unverified entry 23	
-60	Monkey Madness	24	Unverified entry 24	
-70	Stadium Attack	0		
-80	Gladiator Attack	0		
-90	Peak Point Matrix	0		
+# Ape Escape (North American 1999 game) Monkepedia catalogue.
+# Columns: stage_id, stage_name, entry_index, US_display_name, monkey_level, description_summary, source_url.
+# Profile descriptions are concise paraphrases of the first-game profile blurbs; levels and US names follow the linked source.
+# Only entries whose name, level and description were verifiable from retrieved source text are listed. No On the Loose-only aliases or placeholders are included.
+# Community-source attribution and share-alike notes: docs/MONKEPEDIA_ATTRIBUTION.md.
+0	Fossil Field	1	Noonan	1	Has trouble with his helmet hair.	https://apeescape.fandom.com/wiki/Fossil_Field
+0	Fossil Field	2	Jorjy	1	Would rather be watching wrestling.	https://apeescape.fandom.com/wiki/Fossil_Field
+0	Fossil Field	3	Nati	1	Likes dancing to loud music.	https://apeescape.fandom.com/wiki/Fossil_Field
+0	Fossil Field	4	Tray C	3	Keeps out of danger.	https://apeescape.fandom.com/wiki/Fossil_Field
+1	Primordial Ooze	1	Shay	1	Likes to take it easy.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+1	Primordial Ooze	2	Dr. Monk	1	Keeps wondering when lunch will arrive.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+1	Primordial Ooze	3	Ah-choo	1	Is frightened of dinosaurs.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+1	Primordial Ooze	4	Grunt	1	Stops to enjoy the scenery.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+1	Primordial Ooze	5	Tyrone	3	Could use a bath.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+1	Primordial Ooze	6	Gornif	1	Sleeps beneath the water.	https://apeescape.fandom.com/wiki/Primordial_Ooze
+2	Molten Lava	1	Scotty	1	Avoids going out when it rains.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	2	Coco	1	Can hold a handstand for a very long time.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	3	Moggan	3	Is scared of heights.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	4	J. Thomas	1	Is coming out of his shell.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	5	Mattie	1	Could become a dinosaur's next meal.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	6	Barney	2	Has trouble getting down.	https://apeescape.fandom.com/wiki/Molten_Lava
+2	Molten Lava	7	Rocky	3	Knows how to handle triceratops.	https://apeescape.fandom.com/wiki/Molten_Lava
+10	Thick Jungle	1	Marquez	1	Knows plenty of good hiding spots.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	2	Livinston	1	Can vanish in a flash.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	3	George	2	Keeps a serious lookout.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	4	Maki	3	Mixes work with play.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	5	Gonzo	3	Is a favorite of Specter's.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	6	Zanzibar	4	Is skilled at barbecuing.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	7	Alphonse	4	Dreams of becoming Specter.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	8	Herb	1	Spends too much time fooling around.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	9	Dilweed	1	Is a lazy little guy.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	10	Stoddy	1	Thinks deeply about existence.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	11	Mitong	1	Is drawn to shiny objects.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	12	Nasus	2	Seems able to read minds.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	13	Elehcim	2	Flies a UFO for fun.	https://apeescape.fandom.com/wiki/Thick_Jungle
+10	Thick Jungle	14	Selur	3	Feels safer up in the trees.	https://apeescape.fandom.com/wiki/Thick_Jungle
+11	Dark Ruins	1	Kyle	3	Enjoys sunshine and his new gun.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	2	Stan	1	Is searching for gold.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	3	Kenny	1	Guards the entrance.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	4	Papou	1	Has become a little wild from being alone.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	5	Bernt	3	Has too much fun to worry.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	6	Trance	3	Has an unusually large mouth.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	7	Cratman	2	Is too afraid to look down.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	8	Mooshy	3	Is worn out from running.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	9	Nuzzy	3	Makes up for short legs with speed.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	10	Mav	2	Dreams of being a star.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	11	Runt	3	Is a slippery, fast runner.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	12	Hoolah	2	Pretends to be dead.	https://apeescape.fandom.com/wiki/Dark_Ruins
+11	Dark Ruins	13	Chino	3	Watches television through his goggles.	https://apeescape.fandom.com/wiki/Dark_Ruins
+12	Cryptic Relics	1	Bazzle	2	Mourns a lost love.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	2	Freeto	2	Needs clean underwear.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	3	Troopa	2	Can be rather pushy.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	4	Stymie	2	Once shot a hole in his own foot.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	5	Spanky	2	Is spineless and ruthless.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	6	Jesta	2	Looks angry and acts mean.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	7	Pally	2	Has a poet's soul.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+12	Cryptic Relics	8	Crash	4	Considers himself king of the apes.	https://apeescape.fandom.com/wiki/Cryptic_Relics
+20	Crabby Beach	1	Cool Blue	1	Ate pink seaweed at lunchtime.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	2	Sandy	1	Builds sand structures.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	3	Shell E.	1	Likes to soak up the sun.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	4	Gidget	1	Treats life like a vacation.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	5	Shaka	2	Is too jumpy to stand still.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	6	Puka	3	Is the island's best swimmer.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	7	MaxMahalo	2	Is both a UFO pilot and a surfer.	https://apeescape.fandom.com/wiki/Crabby_Beach
+20	Crabby Beach	8	Moko	3	Is often distracted and out of it.	https://apeescape.fandom.com/wiki/Crabby_Beach
+21	Coral Cave	1	Chip	2	Acts like a little juvenile delinquent.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	2	Oreo	2	Has a secret crush.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	3	Puddles	1	Is bored out of his mind.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	4	Kalama	1	Sees ultraviolet colors.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	5	Iz	1	Has not slept for days.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	6	Bong-Bong	4	Has a seriously bad attitude.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	7	Jux	1	Enjoys telling lies.	https://apeescape.fandom.com/wiki/Coral_Cave
+21	Coral Cave	8	Pickles	4	Drives without a license.	https://apeescape.fandom.com/wiki/Coral_Cave
+22	Dexter's Island	1	Ton Ton	2	Wonders where he is.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	2	Stuw	3	Split his skull while diving.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	3	Mars	4	Enjoys reggae music.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	4	Murky	2	Sleeps on a trapeze.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	5	Horke	5	Has a black belt in judo.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	6	Howeerd	2	Is witty and charming.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	7	Robbin	2	Is an accomplished horseback rider.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	8	Jakkee	3	Is angry and not very funny.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	9	Frederic	3	Used to live on Mars.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	10	Baba	3	Has extremely large teeth.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+22	Dexter's Island	11	Quirck	5	Is an antisocial misfit.	https://apeescape.fandom.com/wiki/Dexter%27s_Island
+30	Snowy Mammoth	1	Popcicle	2	Sings while asleep.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+30	Snowy Mammoth	2	Iced	1	Suffers from brain freeze.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+30	Snowy Mammoth	3	Rickets	4	Smells of mammoth fumes.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+30	Snowy Mammoth	4	Skeens	2	Finds his suit itchy.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+30	Snowy Mammoth	5	Denggoy	1	Ate yellow snow.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+30	Snowy Mammoth	6	Chilly	1	Is feeling older and colder.	https://apeescape.fandom.com/wiki/Snowy_Mammoth
+31	Frosty Retreat	1	Storm	2	Would rather be in Hawaii.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	2	Qube	2	Walks very quickly.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	3	Ranix	3	Is afraid of flying.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	4	Sharpe	3	Feels dizzy at high altitude.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	5	Sticky	1	Has a suit that is too big.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	6	Droog	4	Takes naps in warm igloos.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	7	Gash	3	Can no longer feel his feet.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	8	Kundra	4	Lost his machine gun.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+31	Frosty Retreat	9	Shadow Grandma	1	Misses his parents.	https://apeescape.fandom.com/wiki/Frosty_Retreat
+32	Hot Springs	1	Punky	2	Has violent changes of mood.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	2	Ameego	5	Is an expert kickboxer.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	3	Yoky	2	Feels an earthquake coming.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	4	Jory	3	Reads Japanese comics.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	5	Crank	3	Wants to fight.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	6	Claxter	2	Was expecting more snow.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	7	Looza	1	Stays warm in the sauna.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	8	Mosquito	4	Likes having lots of drawers.	https://apeescape.fandom.com/wiki/Hot_Springs
+32	Hot Springs	9	Roti	4	Has just had his wisdom teeth taken out.	https://apeescape.fandom.com/wiki/Hot_Springs
+40	Sushi Temple	1	Taku	2	Is a gangsta rapper.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	2	Rocka	2	Is a slick DJ.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	3	Mara-Iea	1	Is a rock-loving VJ.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	4	Wog	3	Was hurt while playing superhero.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	5	Mayi	4	Paints surreal landscapes.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	6	Owyang	1	Quietly daydreams.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	7	Phaldo	2	Likes strawberry shakes.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	8	Wook-E Wook	2	Raps with the Banana Bling crew.	https://apeescape.fandom.com/wiki/Sushi_Temple
+40	Sushi Temple	9	B-Diddy	2	DJs for the Banana Bling crew.	https://apeescape.fandom.com/wiki/Sushi_Temple
+41	Wabi Sabi Wall	1	Minky	3	Is a Zen master.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	2	Zobbro	3	Performs stunts in karate films.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	3	Xeeto	3	Writes haiku.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	4	Moops	4	Wants to rule the world.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	5	Zanabi	4	Has not decided what to do with the future.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	6	Doxs	3	Is being kept safe in a cage.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	7	Buddha	5	Looks for the true path.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	8	Fooey	5	Follows intuition.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	9	Kong	4	Feels lonely at the top.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+41	Wabi Sabi Wall	10	Phool	5	Has a frightening face.	https://apeescape.fandom.com/wiki/Wabi_Sabi_Wall
+42	Crumbling Castle	1	Robart	4	Loves European techno.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	2	Igor	1	Gets beaten up a lot.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	3	Naners	4	Orders everyone around.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	4	Neeners	1	Is overly sensitive.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	5	Charles	1	Has a bad cold.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	6	Gustav	4	Pretends to be a king.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	7	Wilhelm	2	Paints on castle walls.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	8	Emmanuel	2	Wants to visit the beach.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	9	Fej	3	Studied piano with Ludwig.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	10	Joey Flock	2	Misses the sunshine.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	11	Donqui Gazza	3	Sleeps in the dungeon.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	12	Sir Blonde	4	Dislikes German techno.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	13	Sir Noel	1	Once fought with Mondrian.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	14	Antonio	4	Likes to boss everyone around.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	15	Sir Luge	1	Is touchy.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	16	Sir Blue	1	May prefer to stay as he is.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	17	Iron	4	Acts like a pseudo-king.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	18	Sir Jean	2	Paints landscapes as a hobby.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	19	Sir Vale	2	Would rather work somewhere else.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+42	Crumbling Castle	20	Sir Rose	3	Scrambles up to high places.	https://apeescape.fandom.com/wiki/Crumbling_Castle
+50	City Park	1	Kaine	2	Is protected by his cage.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	2	Jaxx	3	Is nicknamed Sugar Ray Jaxx.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	3	Gehry	5	Is a robo-monkey.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	4	Alcatraz	3	Relies on inner strength.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	5	Tino	2	Holds on to grudges.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	6	Q. Bee	3	Carries a heavy gun.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	7	McManic	6	Is very athletic and strong.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	8	Dywan	4	Wants to prove himself.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	9	Elf	2	Is an urban hipster.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	10	Herbert	3	Wants to be a princess.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	11	September	5	Wants to be a sniper.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	12	Manson	3	Is no girlie man.	https://apeescape.fandom.com/wiki/City_Park
+50	City Park	13	Cyprus	2	Will not forgive Sunday for something.	https://apeescape.fandom.com/wiki/City_Park
+51	Specter's Factory	1	Big Show	5	Has a mean itch on his back.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	2	Dreos	6	Feels tough inside his tank.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	3	Reznor	1	Stayed up partying.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	4	Urkel	4	Has made a complete mess of things.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	5	Vanilla S	3	Is a master of the web.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	6	Radd	4	Performed his own brain surgery.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	7	Shimbo	5	Wants banana soup.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	8	Hurt	7	Is dangerous in his robot tank.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	9	String Davinder	3	Is a video-game fanatic.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+51	Specter's Factory	10	Khamo Si	7	Did not pass tank training.	https://apeescape.fandom.com/wiki/Specter%27s_Factory
+52	TV Tower	1	Fredo	2	Is too strange for words.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	2	Charlee	4	Loves sugar.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	3	Mach 3	3	Is mysterious and devious.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	4	Tortuss	4	Dances to his own beat.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	5	Manic	5	Builds bombs.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	6	Ruptdis	3	Often has no clue.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	7	Eighty 7	3	Is older than he looks.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	8	Danio	6	Feels dizzy without enough oxygen.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	9	Roosta	4	Sleeps upside down.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	10	Tellis	5	Is weak from fasting.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	11	Whack	4	Is fearless and powerful.	https://apeescape.fandom.com/wiki/TV_Tower
+52	TV Tower	12	Frostee	2	Is a talented computer hacker.	https://apeescape.fandom.com/wiki/TV_Tower
+60	Monkey Madness	1	Goopo	3	Likes to control everything.	https://apeescape.fandom.com/wiki/Monkey_Madness
+60	Monkey Madness	2	Porto	4	Talks to himself.	https://apeescape.fandom.com/wiki/Monkey_Madness
+60	Monkey Madness	3	Slam	5	Is terrified of ghosts.	https://apeescape.fandom.com/wiki/Monkey_Madness
