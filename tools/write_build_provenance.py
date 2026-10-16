@@ -22,7 +22,7 @@ if not commit:
         commit = "unknown"
 payload = {
     "schema_version": 1,
-    "repository": "NVDEMU/ApeEscapeRecomp-MacWindows",
+    "repository": "NVDEMU/ApeEscapeRecomp-MacWindowsLinux",
     "channel": channel,
     "version": version,
     "commit": commit,
