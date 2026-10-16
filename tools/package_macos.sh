@@ -61,7 +61,7 @@ psx_add_mod_catalog --build-path "$BUILD_DIR" --stage "$RESOURCES" --runtime-tar
 
 cp "$ROOT/LICENSE" "$RESOURCES/LICENSE"
 cp "$ROOT/README.md" "$RESOURCES/README.md"
-cp "$ROOT/RELEASE_NOTES.md" "$RESOURCES/RELEASE_NOTES.md"
+[ ! -f "$ROOT/RELEASE_NOTES.md" ] || cp "$ROOT/RELEASE_NOTES.md" "$RESOURCES/RELEASE_NOTES.md"
 cp "$ROOT/docs/AOT_OVERLAYS.md" "$RESOURCES/AOT_OVERLAYS.md"
 cp "$ROOT/packaging/macos/START_HERE.txt" "$RESOURCES/START_HERE.txt"
 [ ! -f "$ROOT/framework_pins.txt" ] || cp "$ROOT/framework_pins.txt" "$RESOURCES/framework_pins.txt"

@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 8) return fail("expected eight package manifests");
+    if (manifest_count != 9) return fail("expected nine package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -85,7 +85,11 @@ int main(int argc, char** argv) {
              "ape.qol.camera-sensitivity",
              "ape.qol.collectible-stats",
              "ape.qol.enhanced-radar",
-             "ape.qol.speedrun-timer"}) {
+             "ape.qol.speedrun-timer",
+             "ape.challenge.time-trial",
+             "ape.challenge.no-damage",
+             "ape.challenge.limited-lives",
+             "ape.challenge.random-challenge"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
     }
@@ -94,8 +98,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 8)
-        return fail("expected eight package families");
+    if (manager.packages().size() != 9)
+        return fail("expected nine package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -297,10 +301,73 @@ int main(int argc, char** argv) {
     if (!disabled_plan.ok || !disabled_plan.writes.empty())
         return fail("Quick Gadget Select patched guest code while disabled");
 
+    // Challenge Pack features are independent, default-off and select the
+    // expected native plugin only when explicitly enabled.
+    for (const auto& [feature, plugin] :
+         {std::pair{"time-trial", "ape.challenge.time-trial"},
+          std::pair{"no-damage", "ape.challenge.no-damage"},
+          std::pair{"limited-lives", "ape.challenge.limited-lives"},
+          std::pair{"random-challenge", "ape.challenge.random-challenge"}}) {
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.challenge-pack", feature, true, &error)) {
+            return fail(error);
+        }
+        const auto challenge_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!challenge_plan.ok || !challenge_plan.writes.empty() ||
+            challenge_plan.plugins.size() != 1 ||
+            challenge_plan.plugins.front().id != plugin) {
+            return fail(std::string("wrong Challenge Pack plugin plan for ") + feature);
+        }
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.challenge-pack", feature, false, &error)) {
+            return fail(error);
+        }
+        const auto challenge_off_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!challenge_off_plan.ok || !challenge_off_plan.plugins.empty() ||
+            !challenge_off_plan.writes.empty()) {
+            return fail(std::string("Challenge Pack feature remained active: ") + feature);
+        }
+    }
+
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.challenge-pack", "time-trial", true, &error) ||
+        !manager.set_feature_enabled(
+            "ape.enhancement.challenge-pack", "limited-lives", true, &error) ||
+        !manager.set_feature_enabled(
+            "ape.enhancement.challenge-pack", "random-challenge", true, &error)) {
+        return fail(error);
+    }
+    for (const char* choice : {"180", "300", "600"}) {
+        if (!manager.set_feature_option(
+                "ape.enhancement.challenge-pack", "time-trial",
+                "time-limit", choice, &error) ||
+            !manager.set_feature_option(
+                "ape.enhancement.challenge-pack", "random-challenge",
+                "time-limit", choice, &error)) {
+            return fail(error);
+        }
+    }
+    for (const char* choice : {"1", "3", "5"}) {
+        if (!manager.set_feature_option(
+                "ape.enhancement.challenge-pack", "limited-lives",
+                "starting-lives", choice, &error) ||
+            !manager.set_feature_option(
+                "ape.enhancement.challenge-pack", "random-challenge",
+                "starting-lives", choice, &error)) {
+            return fail(error);
+        }
+    }
+    for (const char* feature : {"time-trial", "limited-lives", "random-challenge"}) {
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.challenge-pack", feature, false, &error)) {
+            return fail(error);
+        }
+    }
+
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 8 packages, every feature default-off, "
+    std::cout << "Ape Escape preloaded mods: 9 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
                  "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
-                 "Quick Gadget Select guarded patch, five independent QoL features and camera choices\n";
+                 "Quick Gadget Select guarded patch, five QoL features and four Challenge Pack features/options\n";
     return 0;
 }

@@ -1,0 +1,140 @@
+format_version = 5
+id = "ape.enhancement.challenge-pack"
+version = "1.0.0"
+name = "Ape Escape Challenge Pack"
+author = "nvd123"
+description = "Optional timed hunts, no-damage runs, limited starting lives and a randomized rule set. All challenges are disabled by default."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94423"
+disc_sha256 = "1ae17e78ebb8c782c7c1785b0a0bd7b0ee28235b8a0c83c8df887129899a852a"
+
+[[feature]]
+id = "time-trial"
+name = "Timed Monkey Hunt"
+description = "Beat the stage timer within 3, 5 or 10 minutes. Expiration forces a normal in-game death; stage timer and restart behavior remain game-controlled."
+group = "Challenges"
+default_enabled = false
+
+[[option]]
+feature = "time-trial"
+id = "time-limit"
+label = "Time limit"
+description = "Maximum in-game stage time."
+group = "Challenges"
+type = "choice"
+default = "300"
+
+[[option.choice]]
+value = "180"
+label = "3 minutes"
+
+[[option.choice]]
+value = "300"
+label = "5 minutes"
+
+[[option.choice]]
+value = "600"
+label = "10 minutes"
+
+[[plugin]]
+feature = "time-trial"
+id = "ape.challenge.time-trial"
+
+[[feature]]
+id = "no-damage"
+name = "No-Damage Run"
+description = "Any observed health loss fails the challenge and triggers normal death handling. Healing is allowed; challenge tracking resets when active gameplay ends."
+group = "Challenges"
+default_enabled = false
+
+[[plugin]]
+feature = "no-damage"
+id = "ape.challenge.no-damage"
+
+[[feature]]
+id = "limited-lives"
+name = "Limited Starting Lives"
+description = "Set starting lives to 1, 3 or 5 on the first active gameplay frame in this app session. This is not a per-stage life refill; start a fresh run for best results."
+group = "Challenges"
+default_enabled = false
+
+[[option]]
+feature = "limited-lives"
+id = "starting-lives"
+label = "Starting lives"
+description = "Life allowance for a fresh challenge run."
+group = "Challenges"
+type = "choice"
+default = "3"
+
+[[option.choice]]
+value = "1"
+label = "1 life"
+
+[[option.choice]]
+value = "3"
+label = "3 lives"
+
+[[option.choice]]
+value = "5"
+label = "5 lives"
+
+[[plugin]]
+feature = "limited-lives"
+id = "ape.challenge.limited-lives"
+
+[[feature]]
+id = "random-challenge"
+name = "Random Challenge Rules"
+description = "Pick one of the timed hunt, no-damage or limited-lives rules when gameplay first starts, then keep it for the app session. The chosen rule appears in the in-game HUD."
+group = "Challenges"
+default_enabled = false
+
+[[option]]
+feature = "random-challenge"
+id = "time-limit"
+label = "Random time-trial limit"
+description = "Time limit if the random rule is Timed Monkey Hunt."
+group = "Challenges"
+type = "choice"
+default = "300"
+
+[[option.choice]]
+value = "180"
+label = "3 minutes"
+
+[[option.choice]]
+value = "300"
+label = "5 minutes"
+
+[[option.choice]]
+value = "600"
+label = "10 minutes"
+
+[[option]]
+feature = "random-challenge"
+id = "starting-lives"
+label = "Random starting lives"
+description = "Starting lives if the random rule is Limited Starting Lives."
+group = "Challenges"
+type = "choice"
+default = "3"
+
+[[option.choice]]
+value = "1"
+label = "1 life"
+
+[[option.choice]]
+value = "3"
+label = "3 lives"
+
+[[option.choice]]
+value = "5"
+label = "5 lives"
+
+[[plugin]]
+feature = "random-challenge"
+id = "ape.challenge.random-challenge"
