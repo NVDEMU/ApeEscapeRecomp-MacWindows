@@ -35,14 +35,14 @@ HELPER = r'''
 static std::string s_nvd123_update_status;
 
 static bool launch_nvd123_nightly_updater(std::string* error) {
-    char* base_raw = SDL_GetBasePath();
+    /* SDL3 returns a borrowed const char* here; unlike SDL2, this must not
+     * be released with SDL_free(). Copy the path before leaving this block. */
+    const char* base_raw = SDL_GetBasePath();
     if (!base_raw || !base_raw[0]) {
-        if (base_raw) SDL_free(base_raw);
         if (error) *error = "Could not locate the installed application folder.";
         return false;
     }
     std::filesystem::path base = std::filesystem::path(base_raw).lexically_normal();
-    SDL_free(base_raw);
 
 #if defined(_WIN32)
     const std::filesystem::path python = base / "overlay_toolchain" / "python" / "python.exe";
