@@ -87,6 +87,48 @@ def download_dropbox_api(candidate: Path) -> None:
     )
     stream_response(request, candidate)
 
+def exchange_dropbox_app_token(app_key: str, app_secret: str) -> str:
+    """Get an app-level OAuth token; this does not require a user refresh token."""
+    body = urlencode({"grant_type": "client_credentials"}).encode("utf-8")
+    basic = base64.b64encode(f"{app_key}:{app_secret}".encode("utf-8")).decode("ascii")
+    request = Request(
+        "https://api.dropbox.com/oauth2/token",
+        data=body,
+        headers={
+            "Authorization": f"Basic {basic}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "ApeEscapeRecomp-CI/1.0",
+        },
+        method="POST",
+    )
+    with urlopen(request, timeout=45) as response:
+        payload = json.load(response)
+    token = payload.get("access_token")
+    if not isinstance(token, str) or not token:
+        raise ValueError("Dropbox app-token response did not contain an access token")
+    return token
+
+
+def download_shared_link_api(candidate: Path, shared_url: str) -> None:
+    """Download through Dropbox's shared-link content API, not its HTML viewer."""
+    key = os.environ["DROPBOX_APP_KEY"].strip()
+    secret = os.environ["DROPBOX_APP_SECRET"].strip()
+    token = exchange_dropbox_app_token(key, secret)
+    # Mask token in GitHub Actions logs before it can be used in later requests.
+    print(f"::add-mask::{token}")
+    request = Request(
+        "https://content.dropboxapi.com/2/sharing/get_shared_link_file",
+        data=b"",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Dropbox-API-Arg": json.dumps({"url": shared_url}, separators=(",", ":")),
+            "User-Agent": "ApeEscapeRecomp-CI/1.0",
+        },
+        method="POST",
+    )
+    stream_response(request, candidate)
+
+
 
 def shared_url_variants(url: str) -> list[tuple[str, str]]:
     """Try Dropbox's direct-render and forced-download modes without printing the URL."""
@@ -184,6 +226,19 @@ def main() -> int:
     shared_url = os.environ.get("DISC_URL", "").strip()
 
     try:
+        # Prefer Dropbox's content API for the configured shared link. This avoids
+        # HTML preview pages and uses app-level OAuth, so no user refresh token is
+        # required. The result is still checked for a real CHD before acceptance.
+        if key and secret and shared_url:
+            if try_source(
+                "Dropbox shared-link content API",
+                lambda path: download_shared_link_api(path, shared_url),
+                candidate,
+                destination,
+            ):
+                return 0
+
+        # Retain path-based OAuth for installations that already have a refresh token.
         if key and secret and refresh:
             if try_source(
                 "authenticated Dropbox API",
