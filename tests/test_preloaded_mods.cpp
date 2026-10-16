@@ -89,7 +89,8 @@ int main(int argc, char** argv) {
              "ape.challenge.time-trial",
              "ape.challenge.no-damage",
              "ape.challenge.limited-lives",
-             "ape.challenge.random-challenge"}) {
+             "ape.challenge.random-challenge",
+             "ape.challenge.nightmare-mode"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
     }
@@ -307,7 +308,8 @@ int main(int argc, char** argv) {
          {std::pair{"time-trial", "ape.challenge.time-trial"},
           std::pair{"no-damage", "ape.challenge.no-damage"},
           std::pair{"limited-lives", "ape.challenge.limited-lives"},
-          std::pair{"random-challenge", "ape.challenge.random-challenge"}}) {
+          std::pair{"random-challenge", "ape.challenge.random-challenge"},
+          std::pair{"nightmare-mode", "ape.challenge.nightmare-mode"}}) {
         if (!manager.set_feature_enabled(
                 "ape.enhancement.challenge-pack", feature, true, &error)) {
             return fail(error);

@@ -40,7 +40,7 @@ jobs:
 
           path = Path("mods/preloaded/packages/ape.enhancement.challenge-pack/1.0.0/manifest.toml")
           manifest = tomllib.loads(path.read_text(encoding="utf-8"))
-          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge"}
+          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge", "nightmare-mode"}
           features = manifest.get("feature", [])
           ids = {feature.get("id") for feature in features}
           if ids != expected:
@@ -53,6 +53,7 @@ jobs:
               "ape.challenge.no-damage",
               "ape.challenge.limited-lives",
               "ape.challenge.random-challenge",
+              "ape.challenge.nightmare-mode",
           }
           if plugins != expected_plugins:
               raise SystemExit(f"Unexpected Challenge Pack plugin mapping: {plugins}")
@@ -60,7 +61,7 @@ jobs:
           for plugin in expected_plugins:
               if plugin not in source:
                   raise SystemExit(f"Missing native callback registration: {plugin}")
-          print("Challenge Pack: C syntax, four default-off features and native plugin IDs verified.")
+          print("Challenge Pack: C syntax, five default-off features and native plugin IDs verified.")
           PY
       - name: Check Extended Draw Distance catalog and guarded sites
         run: python3 tools/check_draw_distance_defaults.py

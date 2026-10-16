@@ -11,3 +11,5 @@ The Gameplay Assist Pack contains separate toggles for Infinite Lives, Infinite 
 The Quality-of-Life Tools package adds experimental Quick Retry (fast respawn, not a full stage reload), D-pad camera sensitivity, collectible statistics, a caught-monkey progress tracker and an in-game level timer. See the package README for shortcuts and limitations.
 
 The **Challenge Pack** adds timed monkey hunts, no-damage runs, limited starting lives and random rule selection. Every rule is opt-in and has an in-game HUD; see its package README for limitations and testing notes.
+
+Nightmare Mode combines a one-hit health cap, three lives for the run, and a three-minute per-stage time limit behind one default-off feature. The built-in HUD displays the stage countdown.

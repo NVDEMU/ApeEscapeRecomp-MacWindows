@@ -173,6 +173,55 @@ static void random_challenge_vblank(void) {
  else if(g_random_rule==RULE_LIVES)
   run_limited_lives(g_random_lives,&g_random_lives_applied,"RANDOM: LIVES");
 }
+
+/*
+ * Nightmare Mode combines three lives for the run, health capped to a single
+ * hit, and a three-minute limit on each stage using the game's own timer.
+ * Lives are set only once per activation; health and time are enforced in play.
+ */
+static int g_nightmare_lives_applied;
+static int g_nightmare_timed_out;
+
+static void activate_nightmare_mode(void) {
+ g_nightmare_lives_applied=0;
+ g_nightmare_timed_out=0;
+}
+
+static void nightmare_mode_vblank(void) {
+ char status[24];
+ unsigned frames,left,minutes,seconds;
+ if(!playing()) {
+  /* Stage transitions reset the game's timer; permit a fresh stage limit. */
+  g_nightmare_timed_out=0;
+  return;
+ }
+ if(!g_nightmare_lives_applied) {
+  psx_mod_write_half(LIVES,3u);
+  g_nightmare_lives_applied=1;
+  psx_mod_counter_add("ape.challenge.nightmare.started",1u);
+ }
+
+ /* Clamp full health and healing back to one. Never restore zero HP after a hit. */
+ if(psx_mod_read_half(HEALTH)>1u)
+  psx_mod_write_half(HEALTH,1u);
+
+ frames=(unsigned)psx_mod_read_half(TIMER);
+ if(frames>=180u*TIMER_RATE) {
+  if(!g_nightmare_timed_out)
+   psx_mod_counter_add("ape.challenge.nightmare.timeout",1u);
+  g_nightmare_timed_out=1;
+  psx_mod_write_half(HEALTH,0u);
+  draw_hud("NIGHTMARE","TIME UP");
+  return;
+ }
+ g_nightmare_timed_out=0;
+ left=180u*TIMER_RATE-frames;
+ minutes=(left/TIMER_RATE)/60u;
+ seconds=(left/TIMER_RATE)%60u;
+ (void)snprintf(status,sizeof(status),"TIME %02u:%02u",minutes,seconds);
+ draw_hud("NIGHTMARE",status);
+}
+
 PSX_MOD_CONSTRUCTOR(register_ape_challenge_pack) {
  (void)psx_mod_register_activation_plugin("ape.challenge.time-trial",activate_time_trial);
  (void)psx_mod_register_vblank_plugin("ape.challenge.time-trial",time_trial_vblank);
@@ -182,4 +231,6 @@ PSX_MOD_CONSTRUCTOR(register_ape_challenge_pack) {
  (void)psx_mod_register_vblank_plugin("ape.challenge.limited-lives",limited_lives_vblank);
  (void)psx_mod_register_activation_plugin("ape.challenge.random-challenge",activate_random_challenge);
  (void)psx_mod_register_vblank_plugin("ape.challenge.random-challenge",random_challenge_vblank);
+ (void)psx_mod_register_activation_plugin("ape.challenge.nightmare-mode",activate_nightmare_mode);
+ (void)psx_mod_register_vblank_plugin("ape.challenge.nightmare-mode",nightmare_mode_vblank);
 }

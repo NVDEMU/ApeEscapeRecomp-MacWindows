@@ -62,6 +62,7 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 - **Extended Draw Distance** — an experimental rendering tweak aimed at reducing certain distance pop-in paths.
 - **Quality-of-Life Tools** — Quick Retry, camera sensitivity, collectible counters, a monkey-progress panel and a level timer.
 - **Challenge Pack** — optional timed monkey hunts (3/5/10 minutes), no-damage runs, limited starting lives (1/3/5), and randomized challenges with an in-game status HUD. Every challenge starts disabled.
+  - **Nightmare Mode** — one-hit health, three lives for the run, and a three-minute limit per stage in one opt-in hardcore ruleset.
 
 Treat the newer Quality-of-Life tools and Extended Draw Distance as experimental until you have tried them in the actual game. Quick Retry is a fast-respawn shortcut, **not** a full stage reload; the monkey-progress panel tracks caught/uncaught entries rather than showing live monkey positions. If an enhancement causes glitches or looks unlike the original, turn it back off.
 
