@@ -262,30 +262,71 @@ $playerToml = if ($cut -ge 0) { $realToml.Substring(0, $cut).TrimEnd() + "`n" } 
 $playerToml | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 Write-Host "Staged player game.toml from real game.toml (audit section stripped)"
 
-# Fresh original-disc AOT is mandatory, including when base regeneration is skipped.
+# AOT is an optimization, not a release prerequisite. The shared Mac packager
+# already follows this policy: if exact-disc/BIOS extraction or native-shard
+# compilation fails, ship the app with runtime compilation/interpreter fallback
+# enabled rather than failing the whole platform release. Stage AOT separately so
+# a failed attempt can never leave a partial cache in the shipped package.
 $RecompTools = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "tools")).Path
 $RecompInc = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "runtime/include")).Path
 $StagedGameToml = Join-Path $Stage 'game.toml'
 $AotPython = Join-Path $MingwBin 'python.exe'
 if (-not (Test-Path -LiteralPath $AotPython)) {
-    # MSYS2 installs the MinGW tools at C:\msys64\mingw64\bin, but some
-    # runner images omit MinGW's Python package. The AOT driver is pure Python
-    # and takes an explicit MinGW gcc.exe path, so the runner's CPython is a
-    # safe fallback; Add-OverlayToolchain owns the shipped embedded Python.
+    # The AOT driver is pure Python and takes an explicit MinGW gcc.exe path, so
+    # the runner's CPython is a safe fallback; Add-OverlayToolchain stages Python.
     $PythonCommand = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($PythonCommand) { $AotPython = $PythonCommand.Source }
 }
 if (-not (Test-Path -LiteralPath $AotPython)) {
     throw "No Python interpreter found for the original-disc AOT pipeline."
 }
-Invoke-Native {
-    & $AotPython (Join-Path $RecompTools 'aot_overlay_pipeline.py') release `
-        --profile (Join-Path $Root 'aot/overlays.json') `
-        --game-toml (Join-Path $Root 'game.toml') --runtime-config $StagedGameToml `
-        --runtime-build-dir $BuildPath --runtime-target psx-runtime `
-        --recompiler $RecompBin --work-dir (Join-Path $Root 'build-aot') `
-        --stage $Stage --gcc (Join-Path $MingwBin 'gcc.exe') --workers $Jobs
-} 'original-disc AOT extraction, compilation and audit'
+
+$AotWorkDir = Join-Path $Root 'build-aot-windows'
+$AotStage = Join-Path $Root 'build-aot-windows-stage'
+if (Test-Path -LiteralPath $AotWorkDir) {
+    Remove-Item -LiteralPath $AotWorkDir -Recurse -Force
+}
+if (Test-Path -LiteralPath $AotStage) {
+    Remove-Item -LiteralPath $AotStage -Recurse -Force
+}
+New-Item -ItemType Directory -Path $AotStage -Force | Out-Null
+
+$AotReady = $false
+try {
+    Invoke-Native {
+        & $AotPython (Join-Path $RecompTools 'aot_overlay_pipeline.py') release `
+            --profile (Join-Path $Root 'aot/overlays.json') `
+            --game-toml (Join-Path $Root 'game.toml') --runtime-config $StagedGameToml `
+            --runtime-build-dir $BuildPath --runtime-target psx-runtime `
+            --recompiler $RecompBin --work-dir $AotWorkDir `
+            --stage $AotStage --gcc (Join-Path $MingwBin 'gcc.exe') --workers $Jobs
+    } 'original-disc AOT extraction, compilation and audit'
+    $AotReady = $true
+} catch {
+    Write-Warning "Original-disc AOT precompilation failed; packaging will continue with runtime compilation/interpreter fallback. $($_.Exception.Message)"
+    $AotLogs = @(Get-ChildItem -LiteralPath $AotWorkDir -Filter 'extract.log' -Recurse -File -ErrorAction SilentlyContinue |
+                 Sort-Object -Property LastWriteTime -Descending)
+    if ($AotLogs.Count -gt 0) {
+        Write-Host "Latest AOT extraction diagnostics: $($AotLogs[0].FullName)"
+        Get-Content -LiteralPath $AotLogs[0].FullName -Tail 160 | ForEach-Object { Write-Host $_ }
+    }
+}
+
+if ($AotReady) {
+    $AotOutputs = @(Get-ChildItem -LiteralPath $AotStage -Force -ErrorAction SilentlyContinue)
+    if ($AotOutputs.Count -gt 0) {
+        Copy-Item -Path (Join-Path $AotStage '*') -Destination $Stage -Recurse -Force
+        Write-Host "Staged successfully audited original-disc AOT outputs."
+    } else {
+        Write-Warning "AOT pipeline succeeded but produced no staged files; using runtime fallback."
+    }
+} else {
+    Write-Warning "No partial AOT outputs will be shipped."
+}
+if (Test-Path -LiteralPath $AotStage) {
+    Remove-Item -LiteralPath $AotStage -Recurse -Force
+}
+
 Add-OverlayToolchain -Stage $Stage -RecompDir $RecompDir -RecompTools $RecompTools `
                      -RecompInc $RecompInc -MingwBin $MingwBin `
                      -DlCache (Join-Path $Root "tools\_toolchain_cache") | Out-Null
@@ -320,9 +361,10 @@ This package includes the MIT-licensed OpenBIOS from PCSX-Redux and its notice
 in bios/OpenBIOS.LICENSE. It does not include the Ape Escape disc, a retail
 PlayStation BIOS, save data, or game assets.
 
-The package includes native shards for 47 archive overlays and two minigame
-executables, extracted from the original disc. Fallback remains enabled.
-See docs/AOT_OVERLAYS.md and AOT_CACHE_AUDIT.json for coverage and limits.
+The release pipeline attempts to precompile native shards for original-disc
+overlays and minigame executables. When AOT precompilation is unavailable, runtime
+compilation and interpreter fallback remain enabled. See docs/AOT_OVERLAYS.md and
+AOT_CACHE_AUDIT.json when an AOT audit is present.
 
 First launch:
 1. Run ApeEscapeRecomp.exe. A launcher window opens.
