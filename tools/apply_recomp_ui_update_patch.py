@@ -320,8 +320,7 @@ RUNTIME_KEYBOARD = Path("psxrecomp-v4/runtime/src/psx_keybinds.c")
 UI_KEYBOARD = Path("src/consoles/psx/psx_binds.c")
 KEYBOARD_MARKER = "APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS"
 
-PREFS_HELPER = r'''
-/* ape_escape_accessibility_preferences: per-user launcher-only preferences.
+PREFS_STATE = r'''/* ape_escape_accessibility_preferences: per-user launcher-only preferences.
  * Stored beside the user's writable data so replacing the app never resets them. */
 struct ApeEscapeLauncherPreferences {
     int text_percent = 100;
@@ -333,6 +332,9 @@ static bool g_ape_escape_preferences_loaded = false;
 static LauncherTheme g_ape_escape_accessible_theme{};
 static std::string s_ape_escape_quick_status;
 
+'''
+
+PREFS_HELPER = r'''
 static std::filesystem::path ape_escape_data_directory() {
     const char* override_dir = std::getenv("APE_ESCAPE_RECOMP_DATA_DIR");
     if (override_dir && override_dir[0])
@@ -674,6 +676,138 @@ def main() -> int:
     elif 'ImGui::Button("Check for Nightly Updates"' not in launcher_text:
         return fail("Updater helper exists but launcher button is missing.", 3)
 
+    # Make the standard-library streams needed by the per-user preferences available.
+    if PREFS_INCLUDE_MARKER not in launcher_text:
+        if args.check:
+            return fail("The launcher preference include has not been applied.", 1)
+        if launcher_text.count(INCLUDE_ANCHOR) != 1:
+            return fail("Pinned launcher source no longer matches the guarded preference include anchor.")
+        launcher_text = launcher_text.replace(
+            INCLUDE_ANCHOR,
+            INCLUDE_ANCHOR + "\n#include <fstream> // " + PREFS_INCLUDE_MARKER,
+            1,
+        )
+
+    # Declare per-user preferences before draw_crt_background reads reduce_motion.
+    if PREFS_MARKER not in launcher_text:
+        if args.check:
+            return fail("Accessibility preference helpers have not been applied.", 1)
+        state_anchor = "void draw_crt_background(ImVec2 origin, ImVec2 size) {"
+        if launcher_text.count(state_anchor) != 1:
+            return fail("Pinned launcher source no longer matches the guarded accessibility-state anchor.")
+        launcher_text = launcher_text.replace(state_anchor, PREFS_STATE + state_anchor, 1)
+        if launcher_text.count(DRAW_ANCHOR) != 1:
+            return fail("Pinned launcher source no longer matches the guarded accessibility-helper anchor.")
+        launcher_text = launcher_text.replace(DRAW_ANCHOR, PREFS_HELPER + "\n" + DRAW_ANCHOR, 1)
+    elif "ape_escape_draw_accessibility_settings" not in launcher_text:
+        return fail("Accessibility preferences exist but their settings UI is missing.")
+
+    # Add the accessibility card at the end of the Settings page.
+    if ACCESSIBILITY_MARKER not in launcher_text:
+        if args.check:
+            return fail("The accessibility settings card has not been applied.", 1)
+        if launcher_text.count(SETTINGS_ANCHOR) != 1:
+            return fail("Pinned launcher settings no longer match the guarded accessibility card anchor.")
+        launcher_text = launcher_text.replace(SETTINGS_ANCHOR, ACCESSIBILITY_INSERT + SETTINGS_ANCHOR, 1)
+
+    # Keep quick folder actions and the release shortcut on the dashboard.
+    if QUICK_TOOLS_MARKER not in launcher_text:
+        if args.check:
+            return fail("The dashboard quick-tools panel has not been applied.", 1)
+        if launcher_text.count(END_ANCHOR) != 1:
+            return fail("Pinned launcher dashboard no longer matches the guarded quick-tools anchor.")
+        launcher_text = launcher_text.replace(END_ANCHOR, "\n" + QUICK_TOOLS + END_ANCHOR, 1)
+
+    # Reduce visual effects through a stable, early-return path in the background painter.
+    reduce_anchor = "    ImDrawList* bg = ImGui::GetBackgroundDrawList();\n"
+    reduce_marker = "APE_ESCAPE_REDUCE_VISUAL_EFFECTS"
+    if reduce_marker not in launcher_text:
+        if args.check:
+            return fail("Reduced visual effects have not been connected to the launcher background.", 1)
+        if launcher_text.count(reduce_anchor) != 1:
+            return fail("Pinned launcher background no longer matches the guarded reduced-effects anchor.")
+        reduced = (
+            reduce_anchor +
+            "    // " + reduce_marker + ": replace gradients and scanlines with a flat surface.\n"
+            "    if (g_ape_escape_preferences.reduce_motion) {\n"
+            "        bg->AddRectFilled(origin, ImVec2(origin.x + size.x, origin.y + size.y), ink);\n"
+            "        return;\n"
+            "    }\n"
+        )
+        launcher_text = launcher_text.replace(reduce_anchor, reduced, 1)
+
+    # Make global theme/style changes affect the background, dashboard and all settings pages.
+    call_anchor = "        LNG_ImplSDL_NewFrame();\n"
+    draw_anchor = "        if (launch_commit.job.pending()) draw_launch_commit_progress(*th);\n        else draw_ui(m, *th, p->logical_w, p->logical_h);\n"
+    if ACCESS_THEME_MARKER not in launcher_text:
+        if args.check:
+            return fail("Global accessibility theme application has not been applied.", 1)
+        if launcher_text.count(call_anchor) != 1 or launcher_text.count(draw_anchor) != 1:
+            return fail("Pinned launcher frame loop no longer matches the guarded accessibility theme anchors.")
+        launcher_text = launcher_text.replace(
+            call_anchor,
+            "        ape_escape_refresh_accessibility_theme(th); // " + ACCESS_THEME_MARKER + "\n" + call_anchor,
+            1,
+        )
+        launcher_text = launcher_text.replace(
+            draw_anchor,
+            "        if (launch_commit.job.pending()) draw_launch_commit_progress(*g_th);\n"
+            "        else draw_ui(m, *g_th, p->logical_w, p->logical_h);\n",
+            1,
+        )
+    elif "draw_ui(m, *g_th, p->logical_w, p->logical_h)" not in launcher_text:
+        return fail("Accessibility theme marker exists but the frame loop is not using the effective theme.")
+
+    # Load preferences after ImGui exists, and point the shared background helpers at the same theme copy.
+    run_anchor = "    g_th = th;\n"
+    run_marker = "ape_escape_load_preferences();"
+    if run_marker not in launcher_text:
+        if args.check:
+            return fail("Accessibility preferences are not loaded before the first frame.", 1)
+        if launcher_text.count(run_anchor) != 1:
+            return fail("Pinned launcher startup no longer matches the guarded accessibility initialization anchor.")
+        launcher_text = launcher_text.replace(
+            run_anchor,
+            "    ape_escape_load_preferences();\n"
+            "    ape_escape_refresh_accessibility_theme(th);\n",
+            1,
+        )
+
+    # Patch both the launcher's Controls-page defaults and the runtime fallback.
+    ui_binds_path = ui_root / UI_KEYBOARD
+    if not ui_binds_path.is_file():
+        return fail(f"Required PSX launcher keybind source is missing: {ui_binds_path}", 2)
+    ui_binds_text = ui_binds_path.read_text(encoding="utf-8")
+    if KEYBOARD_MARKER not in ui_binds_text:
+        if args.check:
+            return fail("The full Ape Escape keyboard default map has not been applied to the launcher.", 1)
+        start = ui_binds_text.find("static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT]")
+        end = ui_binds_text.find("};", start) + 2 if start >= 0 else -1
+        if start < 0 or end <= start or ui_binds_text.find("static const SDL_Scancode kPsxDefaults", end) >= 0:
+            return fail("Pinned PSX launcher keybind defaults no longer match the guarded keyboard-map anchor.")
+        ui_binds_text = ui_binds_text[:start] + NEW_UI_DEFAULTS + ui_binds_text[end:]
+        ui_binds_path.write_text(ui_binds_text, encoding="utf-8")
+    elif "SDL_SCANCODE_UP, /* RS Up */" not in ui_binds_text:
+        # The marker alone is not enough: require the right-stick arrow map to survive.
+        return fail("Keyboard defaults are marked patched, but the right-stick mapping is missing.")
+
+    runtime_binds_path = project_root / RUNTIME_KEYBOARD
+    if not runtime_binds_path.is_file():
+        return fail(f"Required PSX runtime keybind source is missing: {runtime_binds_path}", 2)
+    runtime_binds_text = runtime_binds_path.read_text(encoding="utf-8")
+    if KEYBOARD_MARKER not in runtime_binds_text:
+        if args.check:
+            return fail("The full Ape Escape keyboard default map has not been applied to the runtime.", 1)
+        comment_start = runtime_binds_text.find("/*\n * Every player slot uses the framework's historical hardcoded keyboard mapping")
+        macro_start = runtime_binds_text.find("#define PSXKB_PLAYER_DEFAULTS", comment_start)
+        macro_end = runtime_binds_text.find("\n}", macro_start) + 2 if macro_start >= 0 else -1
+        if comment_start < 0 or macro_start < 0 or macro_end <= macro_start:
+            return fail("Pinned PSX runtime defaults no longer match the guarded keyboard-map anchor.")
+        runtime_binds_text = runtime_binds_text[:comment_start] + NEW_RUNTIME_DEFAULTS + runtime_binds_text[macro_end:]
+        runtime_binds_path.write_text(runtime_binds_text, encoding="utf-8")
+    elif "SDL_SCANCODE_UP, .rs_up" not in runtime_binds_text and ".rs_up = SDL_SCANCODE_UP" not in runtime_binds_text:
+        return fail("Runtime keyboard defaults are marked patched, but the right-stick arrow map is missing.")
+
     # Make the supplied stacked logo legible in the top-left header without
     # changing the sizing rules for other system marks.
     if BRAND_SIZE_MARKER not in launcher_text:
@@ -767,7 +901,7 @@ def main() -> int:
         logo_dest.write_bytes(logo_tga)
 
     if args.check:
-        print("Ape Escape theme, top-left logo and Nightly updater patches are present.")
+        print("Ape Escape theme/logo, Nightly updater, accessibility preferences, quick tools, and full keyboard defaults are present.")
     else:
         launcher_path.write_text(launcher_text, encoding="utf-8")
         print("Applied Ape Escape theme/logo and nvd123 Nightly updater patches.")
