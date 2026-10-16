@@ -572,7 +572,21 @@ OLD_UI_DEFAULTS = r'''static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_
     /* RS Up */ SDL_SCANCODE_UNKNOWN, /* RS Down */ SDL_SCANCODE_UNKNOWN,
     /* RS Left */ SDL_SCANCODE_UNKNOWN, /* RS Right */ SDL_SCANCODE_UNKNOWN,
 };'''
-NEW_UI_DEFAULTS = r'''/* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS: same layout as runtime PSXKB_PLAYER_DEFAULTS. */
+NEW_UI_DEFAULTS = r'''/* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS: legacy snapshot for safe one-time migration. */
+static const SDL_Scancode kPsxLegacyDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
+    /* Up */ SDL_SCANCODE_UP, /* Down */ SDL_SCANCODE_DOWN,
+    /* Left */ SDL_SCANCODE_LEFT, /* Right */ SDL_SCANCODE_RIGHT,
+    /* Triangle */ SDL_SCANCODE_A, /* Circle */ SDL_SCANCODE_S,
+    /* Cross */ SDL_SCANCODE_X, /* Square */ SDL_SCANCODE_Z,
+    /* L1 */ SDL_SCANCODE_Q, /* L2 */ SDL_SCANCODE_E,
+    /* R1 */ SDL_SCANCODE_W, /* R2 */ SDL_SCANCODE_R,
+    /* L3 */ SDL_SCANCODE_T, /* R3 */ SDL_SCANCODE_Y,
+    /* Start */ SDL_SCANCODE_RETURN, /* Select */ SDL_SCANCODE_RSHIFT,
+    /* LS Up */ SDL_SCANCODE_UP, /* LS Down */ SDL_SCANCODE_DOWN,
+    /* LS Left */ SDL_SCANCODE_LEFT, /* LS Right */ SDL_SCANCODE_RIGHT,
+    /* RS Up */ SDL_SCANCODE_UNKNOWN, /* RS Down */ SDL_SCANCODE_UNKNOWN,
+    /* RS Left */ SDL_SCANCODE_UNKNOWN, /* RS Right */ SDL_SCANCODE_UNKNOWN,
+};
 static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
     /* D-pad: T / G / F / H */
     /* Up */ SDL_SCANCODE_T, /* Down */ SDL_SCANCODE_G,
@@ -590,6 +604,32 @@ static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
     /* RS Up */ SDL_SCANCODE_UP, /* RS Down */ SDL_SCANCODE_DOWN,
     /* RS Left */ SDL_SCANCODE_LEFT, /* RS Right */ SDL_SCANCODE_RIGHT,
 };'''
+
+
+PSX_MIGRATION_MARKER = "APE_ESCAPE_MIGRATE_DEFAULT_KEYBOARD_LAYOUT"
+PSX_MIGRATION_FUNCTION = r'''
+/* APE_ESCAPE_MIGRATE_DEFAULT_KEYBOARD_LAYOUT
+ * Upgrade only slots whose entire map is still the previous generated default.
+ * Any player-edited bind or alternate stops migration for that slot. */
+static int psx_kb_migrate_legacy_defaults(void) {
+    int changed = 0;
+    for (int p = 0; p < PSX_BINDS_MAX_PLAYERS; ++p) {
+        int is_legacy_default = 1;
+        for (int b = 0; b < LNG_PSX_PAD_BUTTON_COUNT; ++b) {
+            if (s_psx_binds[p][b] != kPsxLegacyDefaults[b] ||
+                s_psx_binds_alt[p][b] != SDL_SCANCODE_UNKNOWN) {
+                is_legacy_default = 0;
+                break;
+            }
+        }
+        if (is_legacy_default) {
+            memcpy(s_psx_binds[p], kPsxDefaults, sizeof(kPsxDefaults));
+            changed = 1;
+        }
+    }
+    return changed;
+}
+'''
 
 OLD_RUNTIME_DEFAULTS = r'''/*
  * Every player slot uses the framework's historical hardcoded keyboard mapping
@@ -778,6 +818,7 @@ def main() -> int:
     if not ui_binds_path.is_file():
         return fail(f"Required PSX launcher keybind source is missing: {ui_binds_path}", 2)
     ui_binds_text = ui_binds_path.read_text(encoding="utf-8")
+    ui_binds_changed = False
     if KEYBOARD_MARKER not in ui_binds_text:
         if args.check:
             return fail("The full Ape Escape keyboard default map has not been applied to the launcher.", 1)
@@ -786,10 +827,41 @@ def main() -> int:
         if start < 0 or end <= start or ui_binds_text.find("static const SDL_Scancode kPsxDefaults", end) >= 0:
             return fail("Pinned PSX launcher keybind defaults no longer match the guarded keyboard-map anchor.")
         ui_binds_text = ui_binds_text[:start] + NEW_UI_DEFAULTS + ui_binds_text[end:]
-        ui_binds_path.write_text(ui_binds_text, encoding="utf-8")
+        ui_binds_changed = True
     elif "/* RS Up */ SDL_SCANCODE_UP" not in ui_binds_text:
         # The marker alone is not enough: require the right-stick arrow map to survive.
         return fail("Keyboard defaults are marked patched, but the right-stick mapping is missing.")
+
+    # Safely migrate only old, untouched default layouts; edited maps stay intact.
+    migration_anchor = "static void psx_kb_promote_empty_players(void) {"
+    migration_tail = "\nvoid rui_psx_binds_init(const char* path) {"
+    if PSX_MIGRATION_MARKER not in ui_binds_text:
+        if args.check:
+            return fail("Safe migration of legacy keyboard defaults has not been applied.", 1)
+        if ui_binds_text.count(migration_anchor) != 1 or ui_binds_text.count(migration_tail) != 1:
+            return fail("Pinned PSX keybind bridge no longer matches the guarded legacy-migration anchors.")
+        # Place the migrator after the empty-player helper and before init.
+        ui_binds_text = ui_binds_text.replace(
+            migration_tail,
+            "\n" + PSX_MIGRATION_FUNCTION + migration_tail,
+            1,
+        )
+        old_init = """        } else {
+            psx_kb_promote_empty_players();
+        }
+        s_psx_binds_init = 1;"""
+        new_init = """        } else {
+            const int migrated_defaults = psx_kb_migrate_legacy_defaults();
+            psx_kb_promote_empty_players();
+            if (migrated_defaults) psx_kb_write_ini(path);
+        }
+        s_psx_binds_init = 1;"""
+        if ui_binds_text.count(old_init) != 1:
+            return fail("Pinned PSX keybind initialization no longer matches the guarded migration call site.")
+        ui_binds_text = ui_binds_text.replace(old_init, new_init, 1)
+        ui_binds_changed = True
+    if ui_binds_changed:
+        ui_binds_path.write_text(ui_binds_text, encoding="utf-8")
 
     runtime_binds_path = project_root / RUNTIME_KEYBOARD
     if not runtime_binds_path.is_file():
