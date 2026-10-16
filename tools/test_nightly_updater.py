@@ -22,6 +22,43 @@ class NightlyUpdaterTests(unittest.TestCase):
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
 
+    def test_bootstrap_copies_ca_bundle_next_to_staged_helper(self):
+        original_file = UPDATER.__file__
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source_python = root / "overlay_toolchain" / "python"
+            if UPDATER.os.name == "nt":
+                fake_executable = source_python / "python.exe"
+            else:
+                fake_executable = source_python / "bin" / "python3"
+            fake_executable.parent.mkdir(parents=True)
+            fake_executable.write_text("test interpreter", encoding="utf-8")
+
+            source_script = root / "app" / "update" / "updater.py"
+            source_script.parent.mkdir(parents=True)
+            source_script.write_text("# test updater", encoding="utf-8")
+            (source_script.parent / "cacert.pem").write_text(
+                "test CA bundle contents", encoding="utf-8"
+            )
+
+            UPDATER.__file__ = str(source_script)
+            temp_runtime = None
+            try:
+                with mock.patch.object(UPDATER.sys, "executable", str(fake_executable)), \
+                     mock.patch.dict(UPDATER.os.environ, {UPDATER.BOOTSTRAPPED_ENV: "0"}), \
+                     mock.patch.object(UPDATER.subprocess, "Popen") as popen:
+                    self.assertTrue(UPDATER.detached_runtime_bootstrap([]))
+                    child_env = popen.call_args.kwargs["env"]
+                    temp_runtime = Path(child_env[UPDATER.RUNTIME_TEMP_ENV])
+                    self.assertEqual(
+                        (temp_runtime / "cacert.pem").read_text(encoding="utf-8"),
+                        "test CA bundle contents",
+                    )
+            finally:
+                UPDATER.__file__ = original_file
+                if temp_runtime is not None:
+                    UPDATER.shutil.rmtree(temp_runtime, ignore_errors=True)
+
     def test_metadata_request_passes_a_verified_tls_context(self):
         class Response:
             def __enter__(self):

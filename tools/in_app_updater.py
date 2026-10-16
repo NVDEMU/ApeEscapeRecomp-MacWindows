@@ -424,7 +424,13 @@ def detached_runtime_bootstrap(argv: list[str]) -> bool:
     target_python_root = temp_root / "python"
     shutil.copytree(source_python, target_python_root, dirs_exist_ok=True)
     staged_script = temp_root / "updater.py"
-    shutil.copy2(Path(__file__).resolve(), staged_script)
+    source_script = Path(__file__).resolve()
+    shutil.copy2(source_script, staged_script)
+    # This helper runs from the temporary directory now, so its adjacent CA
+    # bundle must move with it or the verified TLS context will miss the bundle.
+    source_ca_bundle = source_script.with_name("cacert.pem")
+    if source_ca_bundle.is_file():
+        shutil.copy2(source_ca_bundle, temp_root / "cacert.pem")
     interpreter = target_python_root / ("python.exe" if os.name == "nt" else "bin/python3")
     if not interpreter.is_file():
         shutil.rmtree(temp_root, ignore_errors=True)
