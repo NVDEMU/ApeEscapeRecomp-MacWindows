@@ -565,8 +565,7 @@ static std::string ape_escape_build_info() {
     std::ifstream in(provenance_path);
     if (!in) return "Installed build: metadata unavailable";
     std::string json, line;
-    while (std::getline(in, line)) { json += line; json += '
-'; }
+    while (std::getline(in, line)) { json += line; json += '\\n'; }
     const std::string version = ape_escape_json_string(json, "version");
     const std::string channel = ape_escape_json_string(json, "channel");
     const std::string commit = ape_escape_json_string(json, "commit");
