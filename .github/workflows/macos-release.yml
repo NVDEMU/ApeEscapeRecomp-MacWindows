@@ -1,4 +1,4 @@
-name: macOS app and release
+name: Windows + macOS apps and Nightly release
 
 on:
   push:
@@ -14,8 +14,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout source and pinned launcher
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Check launcher updater patch anchors
+        run: |
+          python3 tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui
+          python3 tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui --check
+      - name: Check updater helper syntax and archive safety
+        run: |
+          python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py
+          python3 tools/test_nightly_updater.py
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh
       - name: Check calibrated controller defaults
@@ -199,6 +209,9 @@ jobs:
           cmake --build build-macos-release --parallel "$BUILD_JOBS" --target psx-runtime ape_stick_response_test ape_preloaded_mods_test
           ctest --test-dir build-macos-release --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
 
+      - name: Write release provenance for the updater
+        run: python3 tools/write_build_provenance.py
+
       - name: Package .app, DMG and ZIP
         run: bash tools/package_macos.sh
         env:
@@ -218,20 +231,188 @@ jobs:
           compression-level: 0
           retention-days: 14
 
+
+  build-windows:
+    needs: [lint, check-assets]
+    if: needs.check-assets.outputs.ready == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python for release metadata
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the MinGW-w64 build toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-sdl3
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-ccache
+
+      - name: Install CHD extraction tools
+        shell: powershell
+        run: |
+          choco install mame --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "MAME/CHD tools installation failed (exit $LASTEXITCODE)." }
+          $tool = Get-Command chdman.exe -ErrorAction SilentlyContinue
+          if (-not $tool) {
+            $root = if ($env:ChocolateyInstall) { $env:ChocolateyInstall } else { 'C:\ProgramData\chocolatey' }
+            $found = Get-ChildItem -Path (Join-Path $root 'lib') -Filter chdman.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+              $dir = $found.DirectoryName
+              Add-Content -Path $env:GITHUB_PATH -Value $dir
+              Write-Host "Using chdman from $dir"
+            } else {
+              throw 'chdman.exe was not found after installing MAME.'
+            }
+          } else {
+            $dir = Split-Path -Parent $tool.Source
+            Add-Content -Path $env:GITHUB_PATH -Value $dir
+            Write-Host "Using chdman from $dir"
+          }
+
+      - name: Download original disc from private storage
+        shell: powershell
+        env:
+          DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).chd'
+          if ($env:DISC_URL) {
+            & curl.exe --fail --location --retry 3 --retry-delay 2 $env:DISC_URL --output $dest
+            if ($LASTEXITCODE -ne 0) { throw "CHD download failed (curl exit $LASTEXITCODE)." }
+          } else {
+            $credential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($env:DROPBOX_APP_KEY):$($env:DROPBOX_APP_SECRET)"))
+            $token = Invoke-RestMethod -Method Post -Uri 'https://api.dropbox.com/oauth2/token' -Headers @{ Authorization = "Basic $credential" } -Body @{ grant_type = 'refresh_token'; refresh_token = $env:DROPBOX_REFRESH_TOKEN }
+            Write-Output "::add-mask::$($token.access_token)"
+            $headers = @{ Authorization = "Bearer $($token.access_token)"; 'Dropbox-API-Arg' = '{"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' }
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://content.dropboxapi.com/2/files/download' -Headers $headers -OutFile $dest
+          }
+          if (!(Test-Path -LiteralPath $dest) -or (Get-Item -LiteralPath $dest).Length -eq 0) {
+            throw 'The original-disc CHD download is empty.'
+          }
+          Write-Host 'Downloaded CHD to runner temp storage; it will not be checked into the repository or release.'
+
+      - name: Verify and prepare the original disc
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $chd = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).chd'
+          $cue = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).cue'
+          $bin = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).bin'
+          & chdman.exe verify -i $chd
+          if ($LASTEXITCODE -ne 0) { throw "chdman verify failed (exit $LASTEXITCODE)." }
+          & chdman.exe extractcd -i $chd -o $cue -ob $bin
+          if ($LASTEXITCODE -ne 0) { throw "chdman extractcd failed (exit $LASTEXITCODE)." }
+          if (!(Test-Path -LiteralPath $cue) -or !(Test-Path -LiteralPath $bin)) {
+            throw 'CHD extraction did not create both CUE and BIN files.'
+          }
+          $python = 'C:\msys64\mingw64\bin\python.exe'
+          if (!(Test-Path -LiteralPath $python)) { throw "MSYS2 Python not found at $python." }
+          & $python 'psxrecomp-v4/tools/prepare_disc.py' $cue --config game.toml
+          if ($LASTEXITCODE -ne 0) { throw "prepare_disc.py failed (exit $LASTEXITCODE)." }
+          if (!(Test-Path -LiteralPath 'apeescape/SCUS_944.23')) { throw 'Prepared Ape Escape executable is missing.' }
+
+      - name: Test updater and launcher integration
+        shell: powershell
+        run: |
+          python tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui
+          python tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui --check
+          python -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py
+          python tools/test_nightly_updater.py
+
+      - name: Package the Windows x64 release
+        shell: powershell
+        run: |
+          python tools/write_build_provenance.py
+          .\tools\package_release.ps1 -Jobs 2
+          if ($LASTEXITCODE -ne 0) { throw "Windows packaging failed (exit $LASTEXITCODE)." }
+
+      - name: Build and run native tests
+        shell: powershell
+        run: |
+          $env:PATH = "C:\msys64\mingw64\bin;$env:PATH"
+          & 'C:\msys64\mingw64\bin\cmake.exe' --build build-release --target ape_stick_response_test ape_preloaded_mods_test -j 2
+          if ($LASTEXITCODE -ne 0) { throw "Building tests failed (exit $LASTEXITCODE)." }
+          & 'C:\msys64\mingw64\bin\ctest.exe' --test-dir build-release --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
+          if ($LASTEXITCODE -ne 0) { throw "Native tests failed (exit $LASTEXITCODE)." }
+
+      - name: Upload the Windows x64 release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: ape-escape-windows-x64
+          path: |
+            ApeEscapeRecomp-*-windows-x64.zip
+            SHA256SUMS-windows-x64.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
   publish-release:
-    needs: [lint, check-assets, build-macos]
+    needs: [lint, check-assets, build-macos, build-windows]
     if: needs.check-assets.outputs.ready == 'true' && (github.ref == 'refs/heads/master' || github.ref_type == 'tag')
     concurrency:
       group: ape-escape-macos-release
       cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
-      - name: Download both architecture packages
+      - name: Checkout release metadata
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Download all platform packages
         uses: actions/download-artifact@v4
         with:
-          pattern: ape-escape-macos-*
+          pattern: ape-escape-*
           path: dist
           merge-multiple: true
+
+      - name: Create Nightly updater manifest
+        shell: bash
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+          BUILD_REF: ${{ github.ref }}
+          BUILD_RUN_ID: ${{ github.run_id }}
+          BUILD_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          python3 - <<'PY'
+          import datetime, json, os
+          from pathlib import Path
+          version = Path("packaging/release/VERSION").read_text(encoding="utf-8").strip()
+          nightly = os.environ["BUILD_REF"] == "refs/heads/master"
+          manifest = {
+              "schema_version": 1,
+              "repository": "NVDEMU/ApeEscapeRecomp-Mac",
+              "channel": "nightly" if nightly else "stable",
+              "tag": "macos-nightly" if nightly else os.environ["BUILD_REF"].removeprefix("refs/tags/"),
+              "version": version,
+              "commit": os.environ["BUILD_COMMIT"],
+              "run_id": os.environ["BUILD_RUN_ID"],
+              "run_number": os.environ["BUILD_RUN_NUMBER"],
+              "built_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          Path("dist/nightly-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          print("Wrote dist/nightly-manifest.json for", manifest["channel"], manifest["commit"][:12])
 
       - name: Publish or update the macOS release
         uses: softprops/action-gh-release@v2
@@ -242,12 +423,16 @@ jobs:
           make_latest: false
           fail_on_unmatched_files: true
           body: |
-            macOS builds of Ape Escape Recompiled.
+            Windows and macOS builds of Ape Escape Recompiled, maintained by nvd123.
 
-            Includes Apple Silicon (arm64) and Intel (x86_64) packages. Download the ZIP or DMG for your Mac. This preview is ad-hoc signed, not Developer ID signed or notarized, so macOS may show a Gatekeeper warning on first launch.
+            Downloads include Windows x64, macOS Apple Silicon (arm64), and macOS Intel (x86_64) ZIP packages. The Mac release also includes DMGs. Mac builds are ad-hoc signed, not Developer ID signed or notarized, so Gatekeeper may show a first-launch warning.
+
+            The in-app updater checks this repository's macos-nightly release, selects the matching platform ZIP, and verifies its SHA-256 checksum before installation. The release includes nightly-manifest.json for update detection.
 
             The game disc and retail PlayStation BIOS are not included. The packaged OpenBIOS is MIT-licensed.
           files: |
             dist/*.zip
             dist/*.dmg
             dist/SHA256SUMS-macos-*.txt
+            dist/SHA256SUMS-windows-x64.txt
+            dist/nightly-manifest.json

@@ -65,6 +65,11 @@ cp "$ROOT/RELEASE_NOTES.md" "$RESOURCES/RELEASE_NOTES.md"
 cp "$ROOT/docs/AOT_OVERLAYS.md" "$RESOURCES/AOT_OVERLAYS.md"
 cp "$ROOT/packaging/macos/START_HERE.txt" "$RESOURCES/START_HERE.txt"
 [ ! -f "$ROOT/framework_pins.txt" ] || cp "$ROOT/framework_pins.txt" "$RESOURCES/framework_pins.txt"
+mkdir -p "$RESOURCES/update"
+cp "$ROOT/tools/in_app_updater.py" "$RESOURCES/update/updater.py"
+if [ -f "$ROOT/BUILD_PROVENANCE.json" ]; then
+  cp "$ROOT/BUILD_PROVENANCE.json" "$RESOURCES/BUILD_PROVENANCE.json"
+fi
 
 # Precompile the repository's audited original-disc overlays for this exact
 # host ABI. This is an optimization: interpreter/runtime compilation fallback

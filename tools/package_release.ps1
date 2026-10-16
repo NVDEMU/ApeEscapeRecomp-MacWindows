@@ -170,6 +170,9 @@ if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe"
 Copy-Item $DevExe (Join-Path $Stage "ApeEscapeRecomp.exe")
 if (Test-Path (Join-Path $Root "README.md"))         { Copy-Item (Join-Path $Root "README.md") $Stage }
 if (Test-Path (Join-Path $Root "LICENSE"))           { Copy-Item (Join-Path $Root "LICENSE") $Stage }
+$UpdateDir = Join-Path $Stage 'update'
+New-Item -ItemType Directory -Force $UpdateDir | Out-Null
+Copy-Item (Join-Path $Root 'tools/in_app_updater.py') (Join-Path $UpdateDir 'updater.py')
 New-Item -ItemType Directory -Force (Join-Path $Stage 'docs') | Out-Null
 Copy-Item (Join-Path $Root 'docs/AOT_OVERLAYS.md') (Join-Path $Stage 'docs')
 $BundledBiosSrc = Join-Path $BuildPath "bios"
@@ -339,4 +342,10 @@ foreach ($doc in @('VERSION','RELEASE_NOTES.md','framework_pins.txt','BUILD_PROV
 }
 Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $ZipPath -Force
 
+$Hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $ZipPath).Hash.ToLowerInvariant()
+$HashLine = "$Hash  $(Split-Path -Leaf $ZipPath)"
+$ChecksumPath = Join-Path $Root "SHA256SUMS-windows-x64.txt"
+Set-Content -LiteralPath $ChecksumPath -Value $HashLine -Encoding ASCII
+
 Write-Host "Wrote $ZipPath"
+Write-Host "Wrote $ChecksumPath"

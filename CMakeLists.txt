@@ -7,6 +7,22 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp")
+set(RECOMP_UI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui" CACHE PATH
+    "Root directory of the shared recomp-ui launcher")
+
+# Add the nvd123 Nightly updater action to the pinned shared launcher without
+# forking its submodule. The patch is idempotent and fails closed if upstream
+# changes the known source anchors.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/apply_recomp_ui_update_patch.py"
+            --ui-root "${RECOMP_UI_ROOT}"
+    RESULT_VARIABLE APE_UPDATER_PATCH_RESULT
+)
+if(NOT APE_UPDATER_PATCH_RESULT EQUAL 0)
+    message(FATAL_ERROR "Could not apply the nvd123 Nightly updater launcher patch.")
+endif()
 
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
