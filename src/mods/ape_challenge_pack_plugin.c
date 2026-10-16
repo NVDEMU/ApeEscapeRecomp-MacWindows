@@ -8,6 +8,7 @@
 static const uint32_t PHASE=0x800F447Cu, TIMER=0x800F4490u, LIVES=0x800F448Cu;
 static const uint32_t HEALTH=0x800EC2C8u, COINS=0x800F44BAu;
 static const uint32_t MONKEY_FLAGS=0x80139368u, GP0=0x1F801810u;
+static const uint32_t MONKEY_ACTION_COOLDOWN=0x800B4980u;
 enum { PHASE_PLAYING=3u, TIMER_RATE=60u, RULE_TIME=0u,
        RULE_NO_DAMAGE=1u, RULE_LIVES=2u, RULE_UNSELECTED=0xFFu };
 typedef struct Glyph { char ch; uint8_t rows[7]; } Glyph;
@@ -84,6 +85,22 @@ static unsigned time_limit(const char *feature) {
 static unsigned starting_lives(const char *feature) {
  unsigned n=option_number(feature,"starting-lives",3u);
  return n==1u||n==3u||n==5u?n:3u;
+}
+
+/*
+ * Community reverse-engineering notes tentatively identify 0x0B4980 as a
+ * shared cooldown controlling some monkey actions. Zeroing it repeatedly was
+ * reported to make monkeys act/alert much more often. This is intentionally
+ * experimental until checked in this build during actual gameplay:
+ * https://apewiki.siontea.com/AE1/RNG
+ */
+static void enforce_monkey_action_cooldown(void) {
+ psx_mod_write_word(MONKEY_ACTION_COOLDOWN,0u);
+}
+
+static void monkey_mayhem_vblank(void) {
+ if(!playing()) return;
+ enforce_monkey_action_cooldown();
 }
 
 /* Use the game's own 60 Hz stage timer; timeout follows normal death handling. */
@@ -204,6 +221,9 @@ static void nightmare_mode_vblank(void) {
   psx_mod_write_half(LIVES,3u);
  }
 
+ /* Nightmare includes Monkey Mayhem: keep monkey action cooldown at zero. */
+ enforce_monkey_action_cooldown();
+
  /* Clamp full health and healing back to one. Never restore zero HP after a hit. */
  if(psx_mod_read_half(HEALTH)>1u)
   psx_mod_write_half(HEALTH,1u);
@@ -234,6 +254,7 @@ PSX_MOD_CONSTRUCTOR(register_ape_challenge_pack) {
  (void)psx_mod_register_vblank_plugin("ape.challenge.limited-lives",limited_lives_vblank);
  (void)psx_mod_register_activation_plugin("ape.challenge.random-challenge",activate_random_challenge);
  (void)psx_mod_register_vblank_plugin("ape.challenge.random-challenge",random_challenge_vblank);
+ (void)psx_mod_register_vblank_plugin("ape.challenge.monkey-mayhem",monkey_mayhem_vblank);
  (void)psx_mod_register_activation_plugin("ape.challenge.nightmare-mode",activate_nightmare_mode);
  (void)psx_mod_register_vblank_plugin("ape.challenge.nightmare-mode",nightmare_mode_vblank);
 }

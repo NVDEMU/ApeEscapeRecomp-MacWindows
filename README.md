@@ -61,8 +61,8 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 - **Gameplay Assist Pack** — separate Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets switches.
 - **Extended Draw Distance** — an experimental rendering tweak aimed at reducing certain distance pop-in paths.
 - **Quality-of-Life Tools** — Quick Retry, camera sensitivity, collectible counters, a monkey-progress panel and a level timer.
-- **Challenge Pack** — optional timed monkey hunts (3/5/10 minutes), no-damage runs, limited starting lives (1/3/5), and randomized challenges with an in-game status HUD. Every challenge starts disabled.
-  - **Nightmare Mode** — one-hit health, a three-life maximum (including extra lives), and a three-minute limit per stage in one opt-in hardcore ruleset.
+- **Challenge Pack** — optional timed monkey hunts (3/5/10 minutes), no-damage runs, limited starting lives (1/3/5), random rules, and **Monkey Mayhem**, an experimental rule that forces a community-reported monkey-action cooldown to zero so monkeys act/alert more often. The RAM mapping needs in-game validation.
+  - **Nightmare Mode** — automatically includes Monkey Mayhem alongside one-hit health, a three-life maximum (including extra lives), and a three-minute limit per stage. Every challenge feature starts disabled.
 
 Treat the newer Quality-of-Life tools and Extended Draw Distance as experimental until you have tried them in the actual game. Quick Retry is a fast-respawn shortcut, **not** a full stage reload; the monkey-progress panel tracks caught/uncaught entries rather than showing live monkey positions. If an enhancement causes glitches or looks unlike the original, turn it back off.
 

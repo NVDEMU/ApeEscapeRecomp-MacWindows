@@ -309,6 +309,7 @@ int main(int argc, char** argv) {
           std::pair{"no-damage", "ape.challenge.no-damage"},
           std::pair{"limited-lives", "ape.challenge.limited-lives"},
           std::pair{"random-challenge", "ape.challenge.random-challenge"},
+          std::pair{"monkey-mayhem", "ape.challenge.monkey-mayhem"},
           std::pair{"nightmare-mode", "ape.challenge.nightmare-mode"}}) {
         if (!manager.set_feature_enabled(
                 "ape.enhancement.challenge-pack", feature, true, &error)) {
@@ -370,6 +371,6 @@ int main(int argc, char** argv) {
     std::cout << "Ape Escape preloaded mods: 9 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
                  "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
-                 "Quick Gadget Select guarded patch, five QoL features and four Challenge Pack features/options\n";
+                 "Quick Gadget Select guarded patch, five QoL features and six Challenge Pack features/options\n";
     return 0;
 }

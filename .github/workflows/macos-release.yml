@@ -40,7 +40,7 @@ jobs:
 
           path = Path("mods/preloaded/packages/ape.enhancement.challenge-pack/1.0.0/manifest.toml")
           manifest = tomllib.loads(path.read_text(encoding="utf-8"))
-          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge", "nightmare-mode"}
+          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge", "monkey-mayhem", "nightmare-mode"}
           features = manifest.get("feature", [])
           ids = {feature.get("id") for feature in features}
           if ids != expected:
@@ -53,6 +53,7 @@ jobs:
               "ape.challenge.no-damage",
               "ape.challenge.limited-lives",
               "ape.challenge.random-challenge",
+              "ape.challenge.monkey-mayhem",
               "ape.challenge.nightmare-mode",
           }
           if plugins != expected_plugins:
@@ -61,7 +62,10 @@ jobs:
           for plugin in expected_plugins:
               if plugin not in source:
                   raise SystemExit(f"Missing native callback registration: {plugin}")
-          print("Challenge Pack: C syntax, five default-off features and native plugin IDs verified.")
+          source_text = source
+          if "0x800B4980u" not in source_text or source_text.count("enforce_monkey_action_cooldown();") < 2:
+              raise SystemExit("Monkey Mayhem must enforce the cooldown independently and from Nightmare Mode")
+          print("Challenge Pack: C syntax, six default-off features, Monkey Mayhem/Nightmare integration and native plugin IDs verified.")
           PY
       - name: Check Extended Draw Distance catalog and guarded sites
         run: python3 tools/check_draw_distance_defaults.py
