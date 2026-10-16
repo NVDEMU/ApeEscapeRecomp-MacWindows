@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# New commits on the same ref supersede previous builds, avoiding stale releases.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
   lint:
@@ -25,6 +30,7 @@ jobs:
       - name: Check updater helper syntax and archive safety
         run: |
           python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py tools/download_disc.py
+          python3 tools/test_download_disc.py
           python3 tools/test_nightly_updater.py
       - name: Check audiovisual guardrails
         run: python3 tools/test_audiovisual_guardrails.py
