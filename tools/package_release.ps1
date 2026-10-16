@@ -56,8 +56,22 @@ $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
 $Stage = Join-Path $StageRoot "ApeEscapeRecomp-windows-x64"
 $ZipPath = Join-Path $Root ("ApeEscapeRecomp-{0}-windows-x64.zip" -f $Version)
-$MingwBin = "C:\msys64\mingw64\bin"
+$GccCommand = Get-Command gcc.exe -ErrorAction SilentlyContinue
+if (-not $GccCommand) {
+    throw "MinGW gcc.exe was not found on PATH. Check the MSYS2 toolchain installation."
+}
+# msys2/setup-msys2 may install MSYS2 outside C:\msys64 on hosted runners.
+# Resolve the active MinGW prefix from the compiler that the action put on PATH
+# instead of assuming a fixed runner installation directory.
+$MingwBin = Split-Path -Parent $GccCommand.Source
 $CMake = Join-Path $MingwBin "cmake.exe"
+if (-not (Test-Path -LiteralPath $CMake)) {
+    $CMakeCommand = Get-Command cmake.exe -ErrorAction SilentlyContinue
+    if ($CMakeCommand) { $CMake = $CMakeCommand.Source }
+}
+if (-not (Test-Path -LiteralPath $CMake)) {
+    throw "MinGW cmake.exe was not found beside gcc.exe or on PATH."
+}
 
 $env:PATH = "$MingwBin;$env:PATH"
 
