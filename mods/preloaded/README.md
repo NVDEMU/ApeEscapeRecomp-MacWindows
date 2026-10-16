@@ -10,6 +10,6 @@ The Gameplay Assist Pack contains separate toggles for Infinite Lives, Infinite 
 
 The Quality-of-Life Tools package adds experimental Quick Retry (fast respawn, not a full stage reload), D-pad camera sensitivity, collectible statistics, a caught-monkey progress tracker and an in-game level timer. See the package README for shortcuts and limitations.
 
-The **Challenge Pack** adds timed monkey hunts, no-damage runs, limited starting lives, random rule selection and **Monkey Mayhem**. Monkey Mayhem experimentally zeroes a community-reported global monkey-action cooldown during active play to make monkeys act/alert more often; its memory mapping requires gameplay validation.
+The **Challenge Pack** adds timed monkey hunts, no-damage runs, limited starting lives and random rule selection. Each feature is independently opt-in and uses its own native plugin.
 
-Nightmare Mode automatically combines Monkey Mayhem with a one-hit health cap, a three-life maximum that blocks extra-life increases, and a three-minute per-stage time limit behind one default-off feature. The built-in HUD displays the stage countdown.
+The separate **Hardcore Challenges** package adds default-off **Monkey Mayhem** and **Nightmare Mode**. Monkey Mayhem experimentally zeroes a community-reported monkey-action cooldown during active play; that RAM mapping requires in-game validation. Nightmare Mode automatically includes Monkey Mayhem with one-hit health, a three-life maximum that blocks extra-life increases, and a three-minute per-stage time limit. Its HUD displays the stage countdown.

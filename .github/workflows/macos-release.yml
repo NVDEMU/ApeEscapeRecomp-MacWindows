@@ -40,7 +40,7 @@ jobs:
 
           path = Path("mods/preloaded/packages/ape.enhancement.challenge-pack/1.0.0/manifest.toml")
           manifest = tomllib.loads(path.read_text(encoding="utf-8"))
-          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge", "monkey-mayhem", "nightmare-mode"}
+          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge"}
           features = manifest.get("feature", [])
           ids = {feature.get("id") for feature in features}
           if ids != expected:
@@ -53,19 +53,34 @@ jobs:
               "ape.challenge.no-damage",
               "ape.challenge.limited-lives",
               "ape.challenge.random-challenge",
-              "ape.challenge.monkey-mayhem",
-              "ape.challenge.nightmare-mode",
           }
           if plugins != expected_plugins:
               raise SystemExit(f"Unexpected Challenge Pack plugin mapping: {plugins}")
+
+          hardcore_path = Path("mods/preloaded/packages/ape.enhancement.hardcore-challenges/1.0.0/manifest.toml")
+          hardcore = tomllib.loads(hardcore_path.read_text(encoding="utf-8"))
+          expected_hardcore = {"monkey-mayhem", "nightmare-mode"}
+          hardcore_features = hardcore.get("feature", [])
+          hardcore_ids = {feature.get("id") for feature in hardcore_features}
+          if hardcore_ids != expected_hardcore:
+              raise SystemExit(f"Unexpected Hardcore Challenges features: {hardcore_ids}")
+          if any(feature.get("default_enabled") is not False for feature in hardcore_features):
+              raise SystemExit("Every Hardcore Challenges feature must default to off")
+          expected_hardcore_plugins = {
+              "ape.challenge.monkey-mayhem",
+              "ape.challenge.nightmare-mode",
+          }
+          hardcore_plugins = {plugin.get("id") for plugin in hardcore.get("plugin", [])}
+          if hardcore_plugins != expected_hardcore_plugins:
+              raise SystemExit(f"Unexpected Hardcore Challenges plugin mapping: {hardcore_plugins}")
+
           source = Path("src/mods/ape_challenge_pack_plugin.c").read_text(encoding="utf-8")
-          for plugin in expected_plugins:
+          for plugin in expected_plugins | expected_hardcore_plugins:
               if plugin not in source:
                   raise SystemExit(f"Missing native callback registration: {plugin}")
-          source_text = source
-          if "0x800B4980u" not in source_text or source_text.count("enforce_monkey_action_cooldown();") < 2:
+          if "0x800B4980u" not in source or source.count("enforce_monkey_action_cooldown();") < 2:
               raise SystemExit("Monkey Mayhem must enforce the cooldown independently and from Nightmare Mode")
-          print("Challenge Pack: C syntax, six default-off features, Monkey Mayhem/Nightmare integration and native plugin IDs verified.")
+          print("Challenge Pack: C syntax, four default-off features, and two default-off Hardcore Challenges features verified.")
           PY
       - name: Check Extended Draw Distance catalog and guarded sites
         run: python3 tools/check_draw_distance_defaults.py

@@ -3,7 +3,7 @@ id = "ape.enhancement.challenge-pack"
 version = "1.0.0"
 name = "Ape Escape Challenge Pack"
 author = "nvd123"
-description = "Optional timed hunts, no-damage runs, limited starting lives, random rules, experimental harder monkey behavior and a combined Nightmare Mode. All features are disabled by default."
+description = "Optional timed monkey hunts, no-damage runs, limited starting lives and randomized challenge rules. All four features are disabled by default."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -140,25 +140,3 @@ feature = "random-challenge"
 id = "ape.challenge.random-challenge"
 
 
-[[feature]]
-id = "monkey-mayhem"
-name = "Monkey Mayhem"
-description = "Experimental monkey behavior challenge: sets a community-reported monkey-action cooldown to zero each active-play frame, intended to make monkeys act and alert much more often. The RAM mapping is not verified in this build and may cause unusual AI or animation behavior."
-group = "Challenges"
-default_enabled = false
-
-[[plugin]]
-feature = "monkey-mayhem"
-id = "ape.challenge.monkey-mayhem"
-
-
-[[feature]]
-id = "nightmare-mode"
-name = "Nightmare Mode"
-description = "Full-game hardcore rules: health is capped at one hit, lives are capped at three for the entire run (including extra-life pickups), each stage has a strict three-minute time limit, and Monkey Mayhem keeps monkey action cooldown at zero. One toggle enables the complete ruleset."
-group = "Challenges"
-default_enabled = false
-
-[[plugin]]
-feature = "nightmare-mode"
-id = "ape.challenge.nightmare-mode"

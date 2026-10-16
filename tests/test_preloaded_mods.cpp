@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 9) return fail("expected nine package manifests");
+    if (manifest_count != 10) return fail("expected ten package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 9)
-        return fail("expected nine package families");
+    if (manager.packages().size() != 10)
+        return fail("expected ten package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -308,9 +308,7 @@ int main(int argc, char** argv) {
          {std::pair{"time-trial", "ape.challenge.time-trial"},
           std::pair{"no-damage", "ape.challenge.no-damage"},
           std::pair{"limited-lives", "ape.challenge.limited-lives"},
-          std::pair{"random-challenge", "ape.challenge.random-challenge"},
-          std::pair{"monkey-mayhem", "ape.challenge.monkey-mayhem"},
-          std::pair{"nightmare-mode", "ape.challenge.nightmare-mode"}}) {
+          std::pair{"random-challenge", "ape.challenge.random-challenge"}}) {
         if (!manager.set_feature_enabled(
                 "ape.enhancement.challenge-pack", feature, true, &error)) {
             return fail(error);
@@ -329,6 +327,32 @@ int main(int argc, char** argv) {
         if (!challenge_off_plan.ok || !challenge_off_plan.plugins.empty() ||
             !challenge_off_plan.writes.empty()) {
             return fail(std::string("Challenge Pack feature remained active: ") + feature);
+        }
+    }
+
+    // Hardcore rules live in a separate package, keeping the regular Challenge Pack's
+    // four native plugin mappings independent of the runtime catalog's existing limit.
+    for (const auto& [feature, plugin] :
+         {std::pair{"monkey-mayhem", "ape.challenge.monkey-mayhem"},
+          std::pair{"nightmare-mode", "ape.challenge.nightmare-mode"}}) {
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.hardcore-challenges", feature, true, &error)) {
+            return fail(error);
+        }
+        const auto hardcore_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!hardcore_plan.ok || !hardcore_plan.writes.empty() ||
+            hardcore_plan.plugins.size() != 1 ||
+            hardcore_plan.plugins.front().id != plugin) {
+            return fail(std::string("wrong Hardcore Challenges plugin plan for ") + feature);
+        }
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.hardcore-challenges", feature, false, &error)) {
+            return fail(error);
+        }
+        const auto hardcore_off_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!hardcore_off_plan.ok || !hardcore_off_plan.plugins.empty() ||
+            !hardcore_off_plan.writes.empty()) {
+            return fail(std::string("Hardcore Challenge remained active: ") + feature);
         }
     }
 
@@ -368,9 +392,9 @@ int main(int argc, char** argv) {
     }
 
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 9 packages, every feature default-off, "
+    std::cout << "Ape Escape preloaded mods: 10 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
                  "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
-                 "Quick Gadget Select guarded patch, five QoL features and six Challenge Pack features/options\n";
+                 "Quick Gadget Select guarded patch, five QoL features, four Challenge Pack features/options and two Hardcore Challenge features\n";
     return 0;
 }
