@@ -313,7 +313,7 @@ PREFS_INCLUDE_MARKER = "APE_ESCAPE_LAUNCHER_PREFS_INCLUDE"
 PREFS_MARKER = "ape_escape_accessibility_preferences"
 ACCESSIBILITY_MARKER = "APE_ESCAPE_ACCESSIBILITY_SETTINGS"
 QUICK_TOOLS_MARKER = "APE_ESCAPE_QUICK_TOOLS"
-ACCESS_THEME_MARKER = "ape_escape_accessibility_theme"
+ACCESS_THEME_MARKER = "APE_ESCAPE_ACCESS_THEME_FRAME_LOOP"
 DRAW_UI_ANCHOR = "void draw_ui(LauncherModel* m, const LauncherTheme& th, int logical_w, int logical_h) {"
 SETTINGS_ANCHOR = '    if (hotkeys_p && !stacked_hotkeys) hotkeys_p->draw(m, &th);\n}'
 RUNTIME_KEYBOARD = Path("psxrecomp-v4/runtime/src/psx_keybinds.c")
@@ -621,19 +621,19 @@ NEW_RUNTIME_DEFAULTS = r'''/*
  * L1/L2 Q/E, Start Return, Select Shift, R2 R and L3/R3 Y/U.
  * Simultaneous multi-keyboard play still requires distinct binds per slot.
  */
-#define PSXKB_PLAYER_DEFAULTS /* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS */ { \\
-    .up = SDL_SCANCODE_T, .down = SDL_SCANCODE_G, \\
-    .left = SDL_SCANCODE_F, .right = SDL_SCANCODE_H, \\
-    .cross = SDL_SCANCODE_X, .circle = SDL_SCANCODE_C, \\
-    .square = SDL_SCANCODE_Z, .triangle = SDL_SCANCODE_V, \\
-    .l1 = SDL_SCANCODE_Q, .r1 = SDL_SCANCODE_SPACE, \\
-    .l2 = SDL_SCANCODE_E, .r2 = SDL_SCANCODE_R, \\
-    .l3 = SDL_SCANCODE_Y, .r3 = SDL_SCANCODE_U, \\
-    .start = SDL_SCANCODE_RETURN, .select = SDL_SCANCODE_LSHIFT, \\
-    .ls_up = SDL_SCANCODE_W, .ls_down = SDL_SCANCODE_S, \\
-    .ls_left = SDL_SCANCODE_A, .ls_right = SDL_SCANCODE_D, \\
-    .rs_up = SDL_SCANCODE_UP, .rs_down = SDL_SCANCODE_DOWN, \\
-    .rs_left = SDL_SCANCODE_LEFT, .rs_right = SDL_SCANCODE_RIGHT, \\
+#define PSXKB_PLAYER_DEFAULTS /* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS */ { \
+    .up = SDL_SCANCODE_T, .down = SDL_SCANCODE_G, \
+    .left = SDL_SCANCODE_F, .right = SDL_SCANCODE_H, \
+    .cross = SDL_SCANCODE_X, .circle = SDL_SCANCODE_C, \
+    .square = SDL_SCANCODE_Z, .triangle = SDL_SCANCODE_V, \
+    .l1 = SDL_SCANCODE_Q, .r1 = SDL_SCANCODE_SPACE, \
+    .l2 = SDL_SCANCODE_E, .r2 = SDL_SCANCODE_R, \
+    .l3 = SDL_SCANCODE_Y, .r3 = SDL_SCANCODE_U, \
+    .start = SDL_SCANCODE_RETURN, .select = SDL_SCANCODE_LSHIFT, \
+    .ls_up = SDL_SCANCODE_W, .ls_down = SDL_SCANCODE_S, \
+    .ls_left = SDL_SCANCODE_A, .ls_right = SDL_SCANCODE_D, \
+    .rs_up = SDL_SCANCODE_UP, .rs_down = SDL_SCANCODE_DOWN, \
+    .rs_left = SDL_SCANCODE_LEFT, .rs_right = SDL_SCANCODE_RIGHT, \
 }'''
 
 def fail(message: str, code: int = 4) -> int:
@@ -760,7 +760,7 @@ def main() -> int:
 
     # Load preferences after ImGui exists, and point the shared background helpers at the same theme copy.
     run_anchor = "    g_th = th;\n"
-    run_marker = "ape_escape_load_preferences();"
+    run_marker = "APE_ESCAPE_INIT_ACCESSIBILITY_PREFERENCES"
     if run_marker not in launcher_text:
         if args.check:
             return fail("Accessibility preferences are not loaded before the first frame.", 1)
@@ -768,7 +768,7 @@ def main() -> int:
             return fail("Pinned launcher startup no longer matches the guarded accessibility initialization anchor.")
         launcher_text = launcher_text.replace(
             run_anchor,
-            "    ape_escape_load_preferences();\n"
+            "    ape_escape_load_preferences(); // " + run_marker + "\n"
             "    ape_escape_refresh_accessibility_theme(th);\n",
             1,
         )
@@ -787,7 +787,7 @@ def main() -> int:
             return fail("Pinned PSX launcher keybind defaults no longer match the guarded keyboard-map anchor.")
         ui_binds_text = ui_binds_text[:start] + NEW_UI_DEFAULTS + ui_binds_text[end:]
         ui_binds_path.write_text(ui_binds_text, encoding="utf-8")
-    elif "SDL_SCANCODE_UP, /* RS Up */" not in ui_binds_text:
+    elif "/* RS Up */ SDL_SCANCODE_UP" not in ui_binds_text:
         # The marker alone is not enough: require the right-stick arrow map to survive.
         return fail("Keyboard defaults are marked patched, but the right-stick mapping is missing.")
 
