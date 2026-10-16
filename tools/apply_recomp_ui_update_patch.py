@@ -745,6 +745,49 @@ static void ape_escape_load_run_history() {
     if (s_ape_run_history.size() > 1000u)
         s_ape_run_history.erase(s_ape_run_history.begin(), s_ape_run_history.end() - 1000);
 }
+static void ape_escape_refresh_run_history() {
+    s_ape_run_history.clear();
+    s_ape_ever_caught.clear();
+    s_ape_stage_bests.clear();
+    s_ape_run_history_loaded = false;
+    ape_escape_load_run_history();
+    s_ape_escape_quick_status = "Play history and time-trial records refreshed from local data.";
+}
+static bool ape_escape_export_time_trials() {
+    ape_escape_load_run_history();
+    const auto path = ape_escape_data_directory() / "ape_escape_time_trials.csv";
+    std::ofstream out(path, std::ios::trunc);
+    if (!out) {
+        s_ape_escape_quick_status = "Could not export time-trial CSV.";
+        return false;
+    }
+    out << "stage_id,stage_name,best_observed_frames,best_observed_time,captured,triangles,specter_coins,lives,timestamp\n";
+    for (const auto& stage : s_ape_monke_stages) {
+        const auto found = s_ape_stage_bests.find(stage.id);
+        if (found == s_ape_stage_bests.end()) continue;
+        const auto& r = found->second;
+        std::string name = stage.name;
+        std::string escaped;
+        escaped.reserve(name.size() + 2u);
+        escaped.push_back('"');
+        for (const char ch : name) {
+            if (ch == '"') escaped.push_back('"');
+            escaped.push_back(ch);
+        }
+        escaped.push_back('"');
+        out << r.stage << ',' << escaped << ',' << r.frames << ','
+            << ape_escape_time_string(r.frames) << ',' << r.caught << ','
+            << r.triangles << ',' << r.coins << ',' << r.lives << ','
+            << ape_escape_date_string(r.timestamp) << '\n';
+    }
+    out.close();
+    if (!out) {
+        s_ape_escape_quick_status = "Could not finish exporting time-trial CSV.";
+        return false;
+    }
+    s_ape_escape_quick_status = "Exported time-trial records to ape_escape_time_trials.csv.";
+    return true;
+}
 static void ape_escape_clear_run_history() {
     std::error_code ec;
     std::filesystem::remove(ape_escape_data_directory() / "ape_escape_journal.tsv", ec);
@@ -834,6 +877,9 @@ static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th)
     } else if (s_ape_monke_page == 1) {
         ImGui::TextColored(col(th.accent2), "PLAY HISTORY & PROGRESS");
         ImGui::TextWrapped("Stage exits are stored locally. No history is uploaded and the journal never writes to game RAM.");
+        if (ImGui::Button("Refresh History", ImVec2(px(150), px(30))))
+            ape_escape_refresh_run_history();
+        ImGui::SameLine(0, gap);
         ImGui::Text("Recorded stage exits: %u", static_cast<unsigned>(s_ape_run_history.size()));
         ImGui::Text("Stages with an observed best: %u", static_cast<unsigned>(s_ape_stage_bests.size()));
         ImGui::Separator();
@@ -868,6 +914,11 @@ static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th)
     } else {
         ImGui::TextColored(col(th.accent2), "TIME TRIALS");
         ImGui::TextWrapped("Fastest observed stage-exit timer using the game's 60 Hz clock. These are practice records, not certified speedrun results: this version cannot verify successful clears, assist-mod use or retry semantics.");
+        if (ImGui::Button("Refresh Records", ImVec2(px(150), px(30))))
+            ape_escape_refresh_run_history();
+        ImGui::SameLine(0, gap);
+        if (ImGui::Button("Export CSV", ImVec2(px(120), px(30))))
+            (void)ape_escape_export_time_trials();
         if (s_ape_stage_bests.empty()) ImGui::TextDisabled("No records yet. Enable Progress Journal in Mods and play a stage.");
         else if (ImGui::BeginTable("ape_monke_times", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
             ImGui::TableSetupColumn("Stage"); ImGui::TableSetupColumn("Best observed");
