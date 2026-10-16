@@ -409,7 +409,7 @@ jobs:
           nightly = os.environ["BUILD_REF"] == "refs/heads/master"
           manifest = {
               "schema_version": 1,
-              "repository": "NVDEMU/ApeEscapeRecomp-Mac",
+              "repository": "NVDEMU/ApeEscapeRecomp-MacWindows",
               "channel": "nightly" if nightly else "stable",
               "tag": "macos-nightly" if nightly else os.environ["BUILD_REF"].removeprefix("refs/tags/"),
               "version": version,

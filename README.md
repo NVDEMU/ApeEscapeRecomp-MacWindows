@@ -1,6 +1,6 @@
 # Ape Escape Recompiled — nvd123
 
-**Project maintainer: nvd123** · [Source code](https://github.com/NVDEMU/ApeEscapeRecomp-Mac) · [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-Mac/releases)
+**Project maintainer: nvd123** · [Source code](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows) · [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases)
 
 A cross-platform native build of **Ape Escape (USA, SCUS-94423)**, maintained by nvd123 for macOS and Windows. The project uses static recompilation through the PSXRecomp framework to translate the original game's machine code into a native executable while retaining the PlayStation hardware model used by the runtime.
 
@@ -49,13 +49,13 @@ checksum, and install it only after closing the app. Windows updates preserve
 remain outside the .app bundle.
 
 The first build containing the updater must be installed manually from
-[Releases](https://github.com/NVDEMU/ApeEscapeRecomp-Mac/releases), because older
+[Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases), because older
 builds do not include the launcher button or updater helper. Failed or invalid
 downloads are not installed.
 
 ## Playing on macOS
 
-1. Download the ZIP or DMG that matches your Mac's processor from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-Mac/releases).
+1. Download the ZIP or DMG that matches your Mac's processor from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases).
 2. Open **Ape Escape Recompiled.app**. The builds are ad-hoc signed and not notarized, so macOS may ask you to confirm that you want to open the app.
 3. In the launcher, select a legally obtained **Ape Escape (USA)** CUE/BIN disc image. Choose the **.cue** file; do not convert it to a cooked 2048-byte ISO, because the original disc sectors contain data used by FMV and audio playback.
 4. Optionally select a legally obtained retail **SCPH1001.BIN** BIOS. OpenBIOS is included and selected automatically by default.
