@@ -191,7 +191,29 @@ ZIP="$OUT_DIR/ApeEscapeRecomp-$VERSION-macos-$ARCH.zip"
 DMG="$OUT_DIR/ApeEscapeRecomp-$VERSION-macos-$ARCH.dmg"
 rm -f "$ZIP" "$DMG"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-hdiutil create -volname "Ape Escape Recompiled" -srcfolder "$APP" -ov -format UDZO "$DMG"
+
+# hdiutil can intermittently report "Resource busy" on hosted Intel runners
+# while DiskImages is releasing a helper/device. Retry the DMG creation with
+# bounded backoff; keep the ZIP, which was already created successfully, and
+# fail clearly if the disk-image operation remains unavailable.
+dmg_created=false
+for attempt in 1 2 3; do
+  if hdiutil create -volname "Ape Escape Recompiled" -srcfolder "$APP" -ov -format UDZO "$DMG"; then
+    dmg_created=true
+    break
+  fi
+  rm -f "$DMG"
+  if [ "$attempt" -lt 3 ]; then
+    delay=$((attempt * 5))
+    echo "::warning::DMG creation attempt $attempt failed; retrying in ${delay}s."
+    sleep "$delay"
+  fi
+done
+if [ "$dmg_created" != true ] || [ ! -s "$DMG" ]; then
+  echo "::error::Failed to create a non-empty macOS DMG after 3 attempts." >&2
+  exit 1
+fi
+hdiutil verify "$DMG"
 (
   cd "$OUT_DIR"
   shasum -a 256 "$(basename "$ZIP")" "$(basename "$DMG")" > "SHA256SUMS-macos-$ARCH.txt"
