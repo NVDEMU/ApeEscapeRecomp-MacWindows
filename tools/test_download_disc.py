@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Local tests for the release-disc downloader; no network or game assets needed."""
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+# Executing this file directly puts tools/ rather than the repository root on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.download_disc import CHD_MAGIC, MIN_CHD_BYTES, shared_url_variants, validate_chd
 
