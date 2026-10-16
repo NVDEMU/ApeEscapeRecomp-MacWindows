@@ -6,7 +6,7 @@ The launcher catalogue is based on the community-maintained [Ape Escape Wiki —
 
 The intended edition is the original 1999 North-American PlayStation game (SCUS-94423), not the `Ape Escape: On the Loose` roster. The catalogue removes handheld/remake aliases, and each displayed record includes a source URL, profile name, source-listed Monkey Level and concise paraphrase of the personality blurb. Descriptions are summaries of sourced profile text, not invented biographies. In-game portrait artwork and the Speed/Attack/Alert icons are not reproduced.
 
-**Completeness note:** 180 fully populated records could be checked from the retrieved source extracts. Those extracts did not expose enough information to verify every row in the original roster, particularly additional Monkey Madness profiles and several Sushi Temple profiles. Those rows are omitted instead of being represented by invented names, empty descriptions or “Unverified entry” placeholders. Therefore, this is an accurate subset—not yet the full original-game catalogue.
+**Completeness note:** The catalogue now contains 204 profile records across 19 stages, including the complete 24-monkey North-American *Monkey Madness* roster and all 12 North-American *Sushi Temple* profiles. For both levels, the display names, Monkey Levels and personality summaries were checked against the “Ape Escape (1999)” section of the linked stage page. The adjacent *Ape Escape: On the Loose* entries are a different roster and are not mixed into this original-game catalogue. The catalogue does not include fictional biographies or placeholder profiles.
 
 ## Attribution and licence
 

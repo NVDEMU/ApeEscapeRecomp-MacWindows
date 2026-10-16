@@ -30,18 +30,76 @@ for raw in catalogue.read_text(encoding="utf-8").splitlines():
         raise SystemExit(f"Profile must link to its source page: {stage_name} #{entry_index}")
     rows.append((numeric_id, stage_name, numeric_index, name, numeric_level, description, source_url))
 
-# These are source-confirmed rows, not a claim that the original game has fewer
-# monkeys. Profiles absent from the retrieved source extracts are deliberately omitted.
+# Expected North-American first-game roster counts by stage. On the two
+# expanded stages below, compare names, levels, and profile summaries row by row.
 expected = {
     0: 4, 1: 6, 2: 7, 10: 14, 11: 13, 12: 8, 20: 8, 21: 8, 22: 11,
-    30: 6, 31: 9, 32: 9, 40: 9, 41: 10, 42: 20, 50: 13, 51: 10,
-    52: 12, 60: 3,
+    30: 6, 31: 9, 32: 9, 40: 12, 41: 10, 42: 20, 50: 13, 51: 10,
+    52: 12, 60: 24,
 }
 counts = Counter(r[0] for r in rows)
 if dict(counts) != expected:
     raise SystemExit(f"Verified source-profile totals mismatch: {dict(counts)!r}")
-if len(rows) != 180:
-    raise SystemExit(f"Expected 180 source-confirmed profiles, found {len(rows)}")
+if len(rows) != 204:
+    raise SystemExit(f"Expected 204 source-confirmed profiles, found {len(rows)}")
+
+verified_rosters = {
+    40: [
+        ("Taku", 2, "Is a gangsta rapper."),
+        ("Rocka", 2, "Is a slick DJ."),
+        ("Mara-Iea", 1, "Is a rock-loving VJ."),
+        ("Wog", 3, "Was hurt while playing superhero."),
+        ("Mayi", 4, "Paints surreal landscapes."),
+        ("Owyang", 1, "Quietly daydreams."),
+        ("Long", 4, "Is unlucky with the ladies."),
+        ("Elly", 4, "Wets the bed at night."),
+        ("Chunky", 1, "Can't stand all the noise."),
+        ("Voti", 2, "Always gets into trouble."),
+        ("Quel", 2, "Can't wait to go home."),
+        ("Phaldo", 2, "Likes strawberry shakes."),
+    ],
+    60: [
+        ("Goopo", 3, "Is a control freak."),
+        ("Porto", 4, "Talks to himself."),
+        ("Slam", 5, "Is terrified of ghosts."),
+        ("Junk", 5, "Gets excited by monsters."),
+        ("Crib", 5, "Wants to get out immediately."),
+        ("Nak", 6, "Acts very cool."),
+        ("Cloy", 6, "Can't stand the suspense."),
+        ("Shaw", 6, "Feels a little edgy."),
+        ("Flea", 6, "Has a pet boa back home."),
+        ("Schafette", 6, "Is a tired soldier."),
+        ("Donovan", 6, "Has never flown a UFO before."),
+        ("Laura", 6, "Was expecting a vacation."),
+        ("Uribe", 4, "Is a math wizard."),
+        ("Gordo", 4, "Is a real pool shark."),
+        ("Raeski", 4, "Is a mix master."),
+        ("Poo-pie", 3, "Is too young for this."),
+        ("Teacup", 4, "Is very tidy."),
+        ("Shine", 4, "Can't hit a moving target."),
+        ("Wrench", 4, "Likes ketchup on eggs."),
+        ("Bronson", 4, "Sees the end of the world."),
+        ("Bungee", 5, "Can flip like a gymnast."),
+        ("Carro", 4, "Is a pyromaniac."),
+        ("Carlito", 4, "Doesn't like to be messed with."),
+        ("BG Whopper", 4, "Senses danger."),
+    ],
+}
+source_urls = {
+    40: "https://apeescape.fandom.com/wiki/Sushi_Temple",
+    60: "https://apeescape.fandom.com/wiki/Monkey_Madness",
+}
+for stage_id, expected_profiles in verified_rosters.items():
+    actual_profiles = [
+        (r[3], r[4], r[5]) for r in rows if r[0] == stage_id
+    ]
+    if actual_profiles != expected_profiles:
+        raise SystemExit(
+            f"Source-verified roster mismatch for stage {stage_id}: {actual_profiles!r}"
+        )
+    for row in (r for r in rows if r[0] == stage_id):
+        if row[6] != source_urls[stage_id]:
+            raise SystemExit(f"Wrong source URL for {row[1]} #{row[2]}")
 seen = set()
 for stage, stage_name, index, name, _level, _description, _source in rows:
     key = (stage, index)

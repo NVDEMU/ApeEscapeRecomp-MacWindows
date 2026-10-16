@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 10) return fail("expected ten package manifests");
+    if (manifest_count != 11) return fail("expected eleven package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -100,8 +100,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 10)
-        return fail("expected ten package families");
+    if (manager.packages().size() != 11)
+        return fail("expected eleven package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -393,7 +393,7 @@ int main(int argc, char** argv) {
     }
 
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 10 packages, every feature default-off, "
+    std::cout << "Ape Escape preloaded mods: 11 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
                  "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
                  "Quick Gadget Select guarded patch, five QoL features, four Challenge Pack features/options and two Hardcore Challenge features\n";
