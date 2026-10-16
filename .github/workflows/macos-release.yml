@@ -350,10 +350,17 @@ jobs:
       - name: Build and run native tests
         shell: powershell
         run: |
-          $env:PATH = "C:\msys64\mingw64\bin;$env:PATH"
-          & 'C:\msys64\mingw64\bin\cmake.exe' --build build-release --target ape_stick_response_test ape_preloaded_mods_test -j 2
+          $gcc = Get-Command gcc.exe -ErrorAction Stop
+          $mingwBin = Split-Path -Parent $gcc.Source
+          $env:PATH = "$mingwBin;$env:PATH"
+          $cmake = Join-Path $mingwBin 'cmake.exe'
+          $ctest = Join-Path $mingwBin 'ctest.exe'
+          if (!(Test-Path -LiteralPath $cmake)) { $cmake = (Get-Command cmake.exe -ErrorAction Stop).Source }
+          if (!(Test-Path -LiteralPath $ctest)) { $ctest = (Get-Command ctest.exe -ErrorAction Stop).Source }
+          Write-Host "Using MinGW tools from $mingwBin"
+          & $cmake --build build-release --target ape_stick_response_test ape_preloaded_mods_test --parallel 2
           if ($LASTEXITCODE -ne 0) { throw "Building tests failed (exit $LASTEXITCODE)." }
-          & 'C:\msys64\mingw64\bin\ctest.exe' --test-dir build-release --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
+          & $ctest --test-dir build-release --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
           if ($LASTEXITCODE -ne 0) { throw "Native tests failed (exit $LASTEXITCODE)." }
 
       - name: Upload the Windows x64 release file
