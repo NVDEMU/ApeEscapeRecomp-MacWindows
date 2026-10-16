@@ -4,9 +4,9 @@
   "disc_hashes": {
     "sha256": "1ae17e78ebb8c782c7c1785b0a0bd7b0ee28235b8a0c83c8df887129899a852a"
   },
-  "expected_records": 50,
+  "expected_records": 49,
   "strict_bounds": true,
-  "bios_resident": true,
+  "bios_resident": false,
   "checks": [
     {
       "method": "words",

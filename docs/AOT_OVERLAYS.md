@@ -53,8 +53,12 @@ The BNS payload is exactly covered by 49 descriptors, indices 0x180 through
 The profile verifies these loader words, table entries, physical adjacency,
 all 49 member classifications, and exact BNS coverage on every extraction.
 It supplements automatic discovery for small established members 0x19F,
-0x1A3 and 0x1AA. The BIOS resident helper recipe is separately verified by
-the framework, giving 50 compilation recipes for 49 game images.
+0x1A3 and 0x1AA. The release AOT inventory contains 49 game-image recipes:
+47 archive overlays and two minigame executables. The optional retail
+SCPH-1001 BIOS-resident helper is not part of this inventory because the retail
+BIOS is not a CI input or included in the release. If a user selects that BIOS,
+runtime compilation/interpreter fallback remains available for its resident
+helper code.
 
 ## Explicit limits
 
