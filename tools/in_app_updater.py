@@ -281,20 +281,46 @@ def install_macos(archive_path: Path, install_root: Path, staging_parent: Path) 
     return current
 
 
+# These files can contain player-selected paths, controller mappings, or
+# per-install preferences. The runtime package ships templates with the same
+# names, but an in-app update must never replace a player's existing choices.
+WINDOWS_PRESERVED_ROOTS = {
+    "saves",
+    "settings.toml",
+    "disc.cfg",
+    "bios.cfg",
+    "keybinds.ini",
+    "input.ini",
+    "config.ini",
+    "launcher-window.ini",
+    "ape_escape_launcher.ini",
+}
+
+
+def should_preserve_windows_update_path(relative: Path) -> bool:
+    if not relative.parts:
+        return True
+    if relative.parts[0] in WINDOWS_PRESERVED_ROOTS:
+        return True
+    # Mod enable/choice state is user data, while the actual bundled mod files
+    # remain updateable. Preserve only the state file, not the whole mods tree.
+    return len(relative.parts) >= 2 and relative.parts[0] == "mods" and relative.parts[1] == "state.toml"
+
+
 def install_windows(archive_path: Path, install_root: Path, staging_parent: Path) -> Path:
     extracted = staging_parent / "extract"
     extracted.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive_path, "r") as archive:
+        verify_archive_paths(archive_path, allow_symlinks=False)
         archive.extractall(extracted)
     if not (extracted / "ApeEscapeRecomp.exe").is_file():
         raise RuntimeError("The Windows update ZIP is missing ApeEscapeRecomp.exe.")
 
     # Merge only files shipped by the new package. Never overwrite user data,
     # and do not delete unknown/user-installed files from the installation.
-    protected = {"saves", "settings.toml"}
     for source in extracted.rglob("*"):
         relative = source.relative_to(extracted)
-        if not relative.parts or relative.parts[0] in protected:
+        if should_preserve_windows_update_path(relative):
             continue
         target = install_root / relative
         if source.is_dir():
