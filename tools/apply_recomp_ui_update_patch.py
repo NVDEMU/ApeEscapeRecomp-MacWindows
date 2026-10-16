@@ -216,7 +216,7 @@ HELPER = r'''
  * the button starts a trusted, bundled helper that owns network/install work. */
 static std::string s_nvd123_update_status;
 
-static bool launch_nvd123_nightly_updater(std::string* error) {
+static bool launch_nvd123_nightly_updater(std::string* error, bool rollback = false) {
     /* SDL3 returns a borrowed const char* here; unlike SDL2, this must not
      * be released with SDL_free(). Copy the path before leaving this block. */
     const char* base_raw = SDL_GetBasePath();
@@ -250,6 +250,7 @@ static bool launch_nvd123_nightly_updater(std::string* error) {
     std::wstring command = L"\"" + python_w + L"\" \"" + script_w +
         L"\" --install-root \"" + base_w + L"\" --parent-pid " +
         std::to_wstring(GetCurrentProcessId());
+    if (rollback) command += L" --rollback";
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
     PROCESS_INFORMATION process{};
@@ -274,10 +275,17 @@ static bool launch_nvd123_nightly_updater(std::string* error) {
     }
     if (child == 0) {
         (void)setsid();
-        execl(python_s.c_str(), python_s.c_str(), script_s.c_str(),
-              "--install-root", base_s.c_str(),
-              "--parent-pid", parent_pid.c_str(),
-              static_cast<char*>(nullptr));
+        if (rollback) {
+            execl(python_s.c_str(), python_s.c_str(), script_s.c_str(),
+                  "--install-root", base_s.c_str(),
+                  "--parent-pid", parent_pid.c_str(), "--rollback",
+                  static_cast<char*>(nullptr));
+        } else {
+            execl(python_s.c_str(), python_s.c_str(), script_s.c_str(),
+                  "--install-root", base_s.c_str(),
+                  "--parent-pid", parent_pid.c_str(),
+                  static_cast<char*>(nullptr));
+        }
         _exit(127);
     }
     return true;
@@ -303,6 +311,23 @@ BUTTON = r'''
     }
     if (!s_nvd123_update_status.empty()) {
         ImGui::TextWrapped("%s", s_nvd123_update_status.c_str());
+    }
+    const auto rollback_archive = ape_escape_data_directory() / "rollback" / "previous-build.zip";
+    const bool rollback_available = std::filesystem::is_regular_file(rollback_archive);
+    ImGui::Spacing();
+    ImGui::TextDisabled("Rollback restores the last build saved by an in-app update.");
+    if (!rollback_available) ImGui::BeginDisabled();
+    if (ImGui::Button("Roll Back Last Build", ImVec2(px(235), px(34)))) {
+        std::string error;
+        if (launch_nvd123_nightly_updater(&error, true)) {
+            s_nvd123_update_status = "Rollback started. Follow its prompt; close Ape Escape when asked.";
+        } else {
+            s_nvd123_update_status = error;
+        }
+    }
+    if (!rollback_available) {
+        ImGui::EndDisabled();
+        ImGui::TextDisabled("A rollback becomes available after an in-app update has saved the previous build.");
     }
 '''
 

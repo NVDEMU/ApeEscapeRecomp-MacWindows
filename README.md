@@ -78,7 +78,7 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 
 Treat the newer Quality-of-Life tools and Extended Draw Distance as experimental until you have tried them in the actual game. Quick Retry is a fast-respawn shortcut, **not** a full stage reload; the monkey-progress panel tracks caught/uncaught entries rather than showing live monkey positions. If an enhancement causes glitches or looks unlike the original, turn it back off.
 
-The base game also retains its original rendering limits and culling behaviour. Widescreen or increased draw distance can expose pop-in that is not present in the standard view. For current limitations and reverse-engineering notes, see [ISSUES.md](ISSUES.md).
+The base game also retains its original rendering limits and culling behaviour. Widescreen or increased draw distance can expose pop-in that is not present in the standard view. For current limitations and reverse-engineering notes, see [ISSUES.md](ISSUES.md) and the audio/video QA plan added to `docs/AUDIOVISUAL_QA.md`.
 
 ### Display, input and saves
 

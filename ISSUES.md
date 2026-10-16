@@ -194,6 +194,12 @@ by itself as closure.
 
 ---
 
+## Audio / video regression status
+
+The frame-smoothing guard was reviewed separately from the known widescreen issues. Phase value **3** is the active-gameplay phase used by the project’s gameplay plugins; the frame-replay hook had been rejecting that phase and therefore disabling interpolation during normal play. The guard now excludes transition/loading phases **4–6** but lets active gameplay reach its guarded capture/replay path. This is a source-level fix; verify smoothness, transition safety, and audio synchronization on actual hardware before declaring it glitch-free.
+
+The remaining reproducible visual targets are documented above (#3 and #6). The broader regression checklist will track title/attract, FMVs, stage transitions, pause/resume, save/load, stock 4:3 and widescreen. No global audio engine setting or stock 4:3 rendering behavior was changed without a confirmed defect.
+
 ## Notes
 
 - These are **enhancement-tier** items on the experimental widescreen path.

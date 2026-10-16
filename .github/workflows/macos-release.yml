@@ -26,6 +26,8 @@ jobs:
         run: |
           python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py
           python3 tools/test_nightly_updater.py
+      - name: Check audiovisual guardrails
+        run: python3 tools/test_audiovisual_guardrails.py
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh
       - name: Check calibrated controller defaults

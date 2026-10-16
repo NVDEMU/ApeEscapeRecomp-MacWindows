@@ -15,7 +15,10 @@ void begin(CPUState* cpu,uint32_t) {
     if(g_psx_render_pass_active)return;
     const uint8_t mode=psx_mod_read_byte(0x800F447C);
     const uint32_t index=psx_mod_read_word(0x800EC35C);
-    if(index>1 || mode==3 || mode==4 || mode==5 || mode==6) { replay.invalidate(); return; }
+    /* Phase 3 is active gameplay (used by the other Ape Escape gameplay plugins).
+     * Excluding it disabled the interpolation capture path during normal play;
+     * keep transition/loading phases guarded instead. */
+    if(index>1 || mode==4 || mode==5 || mode==6) { replay.invalidate(); return; }
     buffer=Base+Stride*index; ot=buffer+0x70+0x3FFC;
     replay.capture(cpu,Start,Stop);
 }
