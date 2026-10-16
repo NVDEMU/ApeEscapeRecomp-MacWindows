@@ -306,6 +306,334 @@ BUTTON = r'''
     }
 '''
 
+
+# Accessibility / quality-of-life additions owned by this project. Keep these
+# patches idempotent and fail closed if the pinned launcher changes underneath us.
+PREFS_INCLUDE_MARKER = "APE_ESCAPE_LAUNCHER_PREFS_INCLUDE"
+PREFS_MARKER = "ape_escape_accessibility_preferences"
+ACCESSIBILITY_MARKER = "APE_ESCAPE_ACCESSIBILITY_SETTINGS"
+QUICK_TOOLS_MARKER = "APE_ESCAPE_QUICK_TOOLS"
+ACCESS_THEME_MARKER = "ape_escape_accessibility_theme"
+DRAW_UI_ANCHOR = "void draw_ui(LauncherModel* m, const LauncherTheme& th, int logical_w, int logical_h) {"
+SETTINGS_ANCHOR = '    if (hotkeys_p && !stacked_hotkeys) hotkeys_p->draw(m, &th);\n}'
+RUNTIME_KEYBOARD = Path("psxrecomp-v4/runtime/src/psx_keybinds.c")
+UI_KEYBOARD = Path("src/consoles/psx/psx_binds.c")
+KEYBOARD_MARKER = "APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS"
+
+PREFS_HELPER = r'''
+/* ape_escape_accessibility_preferences: per-user launcher-only preferences.
+ * Stored beside the user's writable data so replacing the app never resets them. */
+struct ApeEscapeLauncherPreferences {
+    int text_percent = 100;
+    bool high_contrast = false;
+    bool reduce_motion = false;
+};
+static ApeEscapeLauncherPreferences g_ape_escape_preferences;
+static bool g_ape_escape_preferences_loaded = false;
+static LauncherTheme g_ape_escape_accessible_theme{};
+static std::string s_ape_escape_quick_status;
+
+static std::filesystem::path ape_escape_data_directory() {
+    const char* override_dir = std::getenv("APE_ESCAPE_RECOMP_DATA_DIR");
+    if (override_dir && override_dir[0])
+        return std::filesystem::path(override_dir);
+    /* SDL3 returns a borrowed base-path string. Copy it into a filesystem path
+     * immediately; unlike SDL2, do not release this pointer with SDL_free(). */
+    const char* base = SDL_GetBasePath();
+    if (base && base[0]) return std::filesystem::path(base);
+    std::error_code ec;
+    const auto cwd = std::filesystem::current_path(ec);
+    return ec ? std::filesystem::path(".") : cwd;
+}
+
+static std::filesystem::path ape_escape_preferences_path() {
+    return ape_escape_data_directory() / "ape_escape_launcher.ini";
+}
+
+static void ape_escape_load_preferences() {
+    if (g_ape_escape_preferences_loaded) return;
+    g_ape_escape_preferences_loaded = true;
+    g_ape_escape_preferences = ApeEscapeLauncherPreferences{};
+    std::ifstream in(ape_escape_preferences_path());
+    std::string line;
+    while (std::getline(in, line)) {
+        const std::size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        const std::string key = line.substr(0, eq);
+        const std::string value = line.substr(eq + 1);
+        char* end = nullptr;
+        const long parsed = std::strtol(value.c_str(), &end, 10);
+        if (end == value.c_str() || *end != '\0') continue;
+        if (key == "text_percent")
+            g_ape_escape_preferences.text_percent =
+                static_cast<int>(parsed < 80 ? 80 : parsed > 150 ? 150 : parsed);
+        else if (key == "high_contrast")
+            g_ape_escape_preferences.high_contrast = parsed != 0;
+        else if (key == "reduce_motion")
+            g_ape_escape_preferences.reduce_motion = parsed != 0;
+    }
+}
+
+static void ape_escape_save_preferences() {
+    const auto path = ape_escape_preferences_path();
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(), ec);
+    std::ofstream out(path, std::ios::trunc);
+    if (!out) {
+        s_ape_escape_quick_status = "Could not save launcher preferences.";
+        return;
+    }
+    out << "# Ape Escape Recompiled launcher preferences; edited by the app.\n"
+        << "text_percent=" << g_ape_escape_preferences.text_percent << "\n"
+        << "high_contrast=" << (g_ape_escape_preferences.high_contrast ? 1 : 0) << "\n"
+        << "reduce_motion=" << (g_ape_escape_preferences.reduce_motion ? 1 : 0) << "\n";
+    if (!out) s_ape_escape_quick_status = "Could not finish saving launcher preferences.";
+    else s_ape_escape_quick_status = "Launcher preferences saved.";
+}
+
+static void ape_escape_apply_accessibility_theme(LauncherTheme& theme) {
+    if (g_ape_escape_preferences.high_contrast) {
+        theme.background      = lng_rgba(0.0f, 0.0f, 0.0f, 1.0f);
+        theme.background2     = lng_rgba(0.0f, 0.0f, 0.0f, 1.0f);
+        theme.panel           = lng_rgba(0.015f, 0.015f, 0.045f, 1.0f);
+        theme.panel_hovered   = lng_rgba(0.10f, 0.10f, 0.18f, 1.0f);
+        theme.control         = lng_rgba(0.02f, 0.02f, 0.02f, 1.0f);
+        theme.control_hovered = lng_rgba(0.15f, 0.15f, 0.20f, 1.0f);
+        theme.border          = lng_rgba(1.0f, 1.0f, 1.0f, 1.0f);
+        theme.accent          = lng_rgba(1.0f, 0.93f, 0.0f, 1.0f);
+        theme.accent_dim      = lng_rgba(1.0f, 0.83f, 0.0f, 1.0f);
+        theme.accent_text     = lng_rgba(0.0f, 0.0f, 0.0f, 1.0f);
+        theme.accent2         = lng_rgba(0.50f, 0.90f, 1.0f, 1.0f);
+        theme.text            = lng_rgba(1.0f, 1.0f, 1.0f, 1.0f);
+        theme.text_muted      = lng_rgba(1.0f, 1.0f, 1.0f, 1.0f);
+        theme.good            = lng_rgba(0.30f, 1.0f, 0.35f, 1.0f);
+        theme.warn            = lng_rgba(1.0f, 0.85f, 0.0f, 1.0f);
+        theme.focus_ring      = lng_rgba(0.50f, 0.95f, 1.0f, 1.0f);
+        theme.focus_ring_width = 4.0f;
+        theme.row_height       = 48.0f;
+        theme.scanlines        = 0;
+        theme.scanline         = lng_rgba(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    if (g_ape_escape_preferences.reduce_motion) theme.scanlines = 0;
+}
+
+static void ape_escape_refresh_accessibility_theme(const LauncherTheme* base) {
+    if (!base) return;
+    ape_escape_load_preferences();
+    g_ape_escape_accessible_theme = *base;
+    ape_escape_apply_accessibility_theme(g_ape_escape_accessible_theme);
+    g_th = &g_ape_escape_accessible_theme;
+    ImGui::GetIO().FontGlobalScale =
+        static_cast<float>(g_ape_escape_preferences.text_percent) / 100.0f;
+}
+
+static std::string ape_escape_file_url(const std::filesystem::path& path) {
+    std::error_code ec;
+    std::string raw = std::filesystem::absolute(path, ec).generic_string();
+    if (ec) raw = path.generic_string();
+    std::string url = "file://";
+#if defined(_WIN32)
+    url += "/";
+#endif
+    static const char kHex[] = "0123456789ABCDEF";
+    for (unsigned char ch : raw) {
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+            (ch >= '0' && ch <= '9') || ch == '/' || ch == ':' ||
+            ch == '-' || ch == '_' || ch == '.' || ch == '~') {
+            url.push_back(static_cast<char>(ch));
+        } else {
+            url.push_back('%');
+            url.push_back(kHex[ch >> 4]);
+            url.push_back(kHex[ch & 15]);
+        }
+    }
+    return url;
+}
+
+static bool ape_escape_open_url(const std::string& url) {
+#if defined(LNG_SDL3)
+    const bool ok = SDL_OpenURL(url.c_str());
+#else
+    const bool ok = SDL_OpenURL(url.c_str()) == 0;
+#endif
+    if (!ok) s_ape_escape_quick_status = "Could not open the requested location.";
+    return ok;
+}
+
+static bool ape_escape_open_folder(const std::filesystem::path& folder) {
+    std::error_code ec;
+    std::filesystem::create_directories(folder, ec);
+    if (ec) {
+        s_ape_escape_quick_status = "Could not access folder: " + folder.string();
+        return false;
+    }
+    const bool ok = ape_escape_open_url(ape_escape_file_url(folder));
+    if (ok) s_ape_escape_quick_status = "Opened folder: " + folder.string();
+    return ok;
+}
+
+static bool ape_escape_open_disc_folder(const LauncherModel* m) {
+    if (!m || !m->rom_present || !m->rom_full[0]) {
+        s_ape_escape_quick_status = "Choose a disc first to open its folder.";
+        return false;
+    }
+    std::filesystem::path disc(m->rom_full);
+    const auto parent = disc.parent_path();
+    if (parent.empty()) {
+        s_ape_escape_quick_status = "The selected disc path has no parent folder.";
+        return false;
+    }
+    return ape_escape_open_folder(parent);
+}
+
+static bool ape_escape_open_nightly_page() {
+    return ape_escape_open_url(
+        "https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases/tag/macos-nightly");
+}
+
+static void ape_escape_draw_accessibility_settings(const LauncherTheme& th) {
+    // APE_ESCAPE_ACCESSIBILITY_SETTINGS
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::TextColored(col(th.accent2), "ACCESSIBILITY");
+    ImGui::TextWrapped(
+        "Launcher-wide preferences. Changes save automatically and do not enable gameplay mods.");
+    int text_percent = g_ape_escape_preferences.text_percent;
+    ImGui::SetNextItemWidth(px(280.0f));
+    if (ImGui::SliderInt("Launcher text size", &text_percent, 80, 150, "%d%%")) {
+        g_ape_escape_preferences.text_percent = text_percent;
+        ape_escape_save_preferences();
+    }
+    bool high_contrast = g_ape_escape_preferences.high_contrast;
+    if (ImGui::Checkbox("High-contrast colors", &high_contrast)) {
+        g_ape_escape_preferences.high_contrast = high_contrast;
+        ape_escape_save_preferences();
+    }
+    bool reduce_motion = g_ape_escape_preferences.reduce_motion;
+    if (ImGui::Checkbox("Reduce visual effects", &reduce_motion)) {
+        g_ape_escape_preferences.reduce_motion = reduce_motion;
+        ape_escape_save_preferences();
+    }
+    if (ImGui::Button("Reset accessibility settings", ImVec2(px(230.0f), px(32.0f)))) {
+        g_ape_escape_preferences.text_percent = 100;
+        g_ape_escape_preferences.high_contrast = false;
+        g_ape_escape_preferences.reduce_motion = false;
+        ape_escape_save_preferences();
+    }
+    ImGui::TextDisabled("These preferences are stored in ape_escape_launcher.ini.");
+}
+'''
+
+ACCESSIBILITY_INSERT = r'''
+    // APE_ESCAPE_SETTINGS_CARD
+    ape_escape_draw_accessibility_settings(th);
+'''
+
+QUICK_TOOLS = r'''
+    // APE_ESCAPE_QUICK_TOOLS
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::TextColored(col(th.accent2), "QUICK TOOLS");
+    if (m->rom_present && m->rom_full[0])
+        ImGui::TextWrapped("Selected disc: %s", m->rom_full);
+    else
+        ImGui::TextDisabled("No disc selected yet.");
+    ImGui::TextWrapped("Open your data, save, and disc folders without digging through Finder or File Explorer.");
+    const float quick_gap = px(8.0f);
+    float quick_button_w = (ImGui::GetContentRegionAvail().x - quick_gap) * 0.5f;
+    if (quick_button_w < px(115.0f)) quick_button_w = px(115.0f);
+    if (ImGui::Button("Open Data Folder", ImVec2(quick_button_w, px(34.0f))))
+        ape_escape_open_folder(ape_escape_data_directory());
+    ImGui::SameLine(0, quick_gap);
+    if (ImGui::Button("Open Save Folder", ImVec2(quick_button_w, px(34.0f))))
+        ape_escape_open_folder(ape_escape_data_directory() / "saves");
+    if (ImGui::Button("Open Disc Folder", ImVec2(quick_button_w, px(34.0f))))
+        ape_escape_open_disc_folder(m);
+    ImGui::SameLine(0, quick_gap);
+    if (ImGui::Button("Nightly Release Page", ImVec2(quick_button_w, px(34.0f))))
+        ape_escape_open_nightly_page();
+    if (!s_ape_escape_quick_status.empty())
+        ImGui::TextWrapped("%s", s_ape_escape_quick_status.c_str());
+'''
+
+OLD_UI_DEFAULTS = r'''static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
+    /* Up */ SDL_SCANCODE_UP, /* Down */ SDL_SCANCODE_DOWN,
+    /* Left */ SDL_SCANCODE_LEFT, /* Right */ SDL_SCANCODE_RIGHT,
+    /* Triangle */ SDL_SCANCODE_A, /* Circle */ SDL_SCANCODE_S,
+    /* Cross */ SDL_SCANCODE_X, /* Square */ SDL_SCANCODE_Z,
+    /* L1 */ SDL_SCANCODE_Q, /* L2 */ SDL_SCANCODE_E,
+    /* R1 */ SDL_SCANCODE_W, /* R2 */ SDL_SCANCODE_R,
+    /* L3 */ SDL_SCANCODE_T, /* R3 */ SDL_SCANCODE_Y,
+    /* Start */ SDL_SCANCODE_RETURN, /* Select */ SDL_SCANCODE_RSHIFT,
+    /* LS Up */ SDL_SCANCODE_UP, /* LS Down */ SDL_SCANCODE_DOWN,
+    /* LS Left */ SDL_SCANCODE_LEFT, /* LS Right */ SDL_SCANCODE_RIGHT,
+    /* RS Up */ SDL_SCANCODE_UNKNOWN, /* RS Down */ SDL_SCANCODE_UNKNOWN,
+    /* RS Left */ SDL_SCANCODE_UNKNOWN, /* RS Right */ SDL_SCANCODE_UNKNOWN,
+};'''
+NEW_UI_DEFAULTS = r'''/* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS: same layout as runtime PSXKB_PLAYER_DEFAULTS. */
+static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
+    /* D-pad: T / G / F / H */
+    /* Up */ SDL_SCANCODE_T, /* Down */ SDL_SCANCODE_G,
+    /* Left */ SDL_SCANCODE_F, /* Right */ SDL_SCANCODE_H,
+    /* Triangle */ SDL_SCANCODE_V, /* Circle */ SDL_SCANCODE_C,
+    /* Cross */ SDL_SCANCODE_X, /* Square */ SDL_SCANCODE_Z,
+    /* L1 */ SDL_SCANCODE_Q, /* L2 */ SDL_SCANCODE_E,
+    /* R1 */ SDL_SCANCODE_SPACE, /* R2 */ SDL_SCANCODE_R,
+    /* L3 */ SDL_SCANCODE_Y, /* R3 */ SDL_SCANCODE_U,
+    /* Start */ SDL_SCANCODE_RETURN, /* Select */ SDL_SCANCODE_LSHIFT,
+    /* Left stick: W / S / A / D */
+    /* LS Up */ SDL_SCANCODE_W, /* LS Down */ SDL_SCANCODE_S,
+    /* LS Left */ SDL_SCANCODE_A, /* LS Right */ SDL_SCANCODE_D,
+    /* Right stick: arrow keys */
+    /* RS Up */ SDL_SCANCODE_UP, /* RS Down */ SDL_SCANCODE_DOWN,
+    /* RS Left */ SDL_SCANCODE_LEFT, /* RS Right */ SDL_SCANCODE_RIGHT,
+};'''
+
+OLD_RUNTIME_DEFAULTS = r'''/*
+ * Every player slot uses the framework's historical hardcoded keyboard mapping
+ * (pad_from_keyboard / pad_sticks_for in main.cpp):
+ *   D-pad: Arrow keys      Start: Return     Select: Right Shift
+ *   Cross: X   Circle: S   Square: Z   Triangle: A
+ *   L1: Q  R1: W  L2: E  R2: R  L3: T  R3: Y
+ *   Left analog stick: Arrow keys
+ *   Right analog stick: unbound
+ * Simultaneous multi-keyboard play still requires distinct binds per slot.
+ */
+#define PSXKB_PLAYER_DEFAULTS { \\
+    .up = SDL_SCANCODE_UP, .down = SDL_SCANCODE_DOWN, \\
+    .left = SDL_SCANCODE_LEFT, .right = SDL_SCANCODE_RIGHT, \\
+    .cross = SDL_SCANCODE_X, .circle = SDL_SCANCODE_S, \\
+    .square = SDL_SCANCODE_Z, .triangle = SDL_SCANCODE_A, \\
+    .l1 = SDL_SCANCODE_Q, .r1 = SDL_SCANCODE_W, \\
+    .l2 = SDL_SCANCODE_E, .r2 = SDL_SCANCODE_R, \\
+    .l3 = SDL_SCANCODE_T, .r3 = SDL_SCANCODE_Y, \\
+    .start = SDL_SCANCODE_RETURN, .select = SDL_SCANCODE_RSHIFT, \\
+    .ls_up = SDL_SCANCODE_UP, .ls_down = SDL_SCANCODE_DOWN, \\
+    .ls_left = SDL_SCANCODE_LEFT, .ls_right = SDL_SCANCODE_RIGHT, \\
+    .rs_up = SDL_SCANCODE_UNKNOWN, .rs_down = SDL_SCANCODE_UNKNOWN, \\
+    .rs_left = SDL_SCANCODE_UNKNOWN, .rs_right = SDL_SCANCODE_UNKNOWN, \\
+}'''
+NEW_RUNTIME_DEFAULTS = r'''/*
+ * Ape Escape keyboard defaults: D-pad T/G/F/H, left stick W/S/A/D,
+ * right stick arrow keys, R1 Space, Cross/Circle/Square/Triangle X/C/Z/V,
+ * L1/L2 Q/E, Start Return, Select Shift, R2 R and L3/R3 Y/U.
+ * Simultaneous multi-keyboard play still requires distinct binds per slot.
+ */
+#define PSXKB_PLAYER_DEFAULTS /* APE_ESCAPE_CUSTOM_KEYBOARD_DEFAULTS */ { \\
+    .up = SDL_SCANCODE_T, .down = SDL_SCANCODE_G, \\
+    .left = SDL_SCANCODE_F, .right = SDL_SCANCODE_H, \\
+    .cross = SDL_SCANCODE_X, .circle = SDL_SCANCODE_C, \\
+    .square = SDL_SCANCODE_Z, .triangle = SDL_SCANCODE_V, \\
+    .l1 = SDL_SCANCODE_Q, .r1 = SDL_SCANCODE_SPACE, \\
+    .l2 = SDL_SCANCODE_E, .r2 = SDL_SCANCODE_R, \\
+    .l3 = SDL_SCANCODE_Y, .r3 = SDL_SCANCODE_U, \\
+    .start = SDL_SCANCODE_RETURN, .select = SDL_SCANCODE_LSHIFT, \\
+    .ls_up = SDL_SCANCODE_W, .ls_down = SDL_SCANCODE_S, \\
+    .ls_left = SDL_SCANCODE_A, .ls_right = SDL_SCANCODE_D, \\
+    .rs_up = SDL_SCANCODE_UP, .rs_down = SDL_SCANCODE_DOWN, \\
+    .rs_left = SDL_SCANCODE_LEFT, .rs_right = SDL_SCANCODE_RIGHT, \\
+}'''
+
 def fail(message: str, code: int = 4) -> int:
     print(message, file=sys.stderr)
     return code
