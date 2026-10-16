@@ -16,7 +16,7 @@
 
 ---
 
-## Welcome to the Monkey Lab
+## Welcome to the Ape Escape (USA) Recomp
 
 This repository packages the North American **Ape Escape** game (SCUS-94423) as a native application through static recompilation. The goal is a convenient desktop experience with a dedicated launcher, flexible controller and video settings, saves, and an optional mod collection.
 
