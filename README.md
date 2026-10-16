@@ -2,7 +2,7 @@
   <img src="recomp/launcher/ape_escape_logo.png" alt="Ape Escape" width="360">
 </p>
 
-<h1 align="center">Ape Escape Recompiled — NVDEMU Edition</h1>
+<h1 align="center">Ape Escape Recompiled — Enhanced Edition</h1>
 
 <p align="center">
   A fan-made, native PC project for revisiting Spike's first monkey-catching adventure.
