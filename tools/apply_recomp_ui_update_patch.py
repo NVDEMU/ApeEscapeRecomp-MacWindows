@@ -18,6 +18,8 @@ END_ANCHOR = "\n}\n\n// Trim a path from the LEFT"
 MARKER = "launch_nvd123_nightly_updater"
 THEME_HEADER = Path("src/common/launcher_theme.h")
 PROFILE_HEADER = Path("src/consoles/psx/psx_profile.h")
+MODEL_HEADER = Path("src/common/launcher_model.h")
+MONKEPEDIA_VIEW_MARKER = "APE_ESCAPE_MONKEPEDIA_VIEW"
 LOGO_SOURCE = Path("recomp/launcher/ape_escape_logo.png")
 LOGO_DEST = Path("assets/consoles/psx/img/brand_psx.tga")
 APE_THEME_MARKER = "launcher_theme_ape_escape"
@@ -646,6 +648,249 @@ ACCESSIBILITY_INSERT = r'''
     ape_escape_draw_accessibility_settings(th);
 '''
 
+MONKEPEDIA_HELPER = r'''/* APE_ESCAPE_MONKEPEDIA_HELPER: local-only Monkey Book and play history. */
+struct ApeMonkeEntry { int stage; int index; std::string stage_name, name, alias; };
+struct ApeMonkeStage { int id; std::string name; int entries; };
+struct ApeRunRecord {
+    int stage = -1; std::int64_t timestamp = 0; unsigned frames = 0;
+    unsigned caught = 0, triangles = 0, coins = 0, lives = 0; std::uint32_t mask = 0;
+};
+static std::vector<ApeMonkeEntry> s_ape_monke_entries;
+static std::vector<ApeMonkeStage> s_ape_monke_stages;
+static std::vector<ApeRunRecord> s_ape_run_history;
+static std::unordered_map<int, std::uint32_t> s_ape_ever_caught;
+static std::unordered_map<int, ApeRunRecord> s_ape_stage_bests;
+static bool s_ape_monke_catalog_loaded = false, s_ape_run_history_loaded = false;
+static int s_ape_monke_page = 0, s_ape_monke_stage = 0, s_ape_monke_entry = 1;
+static char s_ape_monke_search[96] = "";
+
+static std::vector<std::string> ape_escape_tsv_columns(const std::string& line) {
+    std::vector<std::string> out; std::stringstream input(line); std::string part;
+    while (std::getline(input, part, '\t')) out.push_back(part);
+    if (!line.empty() && line.back() == '\t') out.emplace_back();
+    return out;
+}
+static long ape_escape_monke_number(const std::string& value, int base = 10) {
+    char* end = nullptr; const long n = std::strtol(value.c_str(), &end, base);
+    return end == value.c_str() || *end ? 0L : n;
+}
+static const ApeMonkeStage* ape_escape_monke_stage(int id) {
+    for (const auto& stage : s_ape_monke_stages) if (stage.id == id) return &stage;
+    return nullptr;
+}
+static std::string ape_escape_monke_stage_name(int id) {
+    const auto* s = ape_escape_monke_stage(id);
+    return s ? s->name : ("Unmapped stage " + std::to_string(id));
+}
+static unsigned ape_escape_mask_count(std::uint32_t bits) {
+    unsigned n = 0; while (bits) { n += bits & 1u; bits >>= 1u; } return n;
+}
+static std::string ape_escape_time_string(unsigned frames) {
+    const unsigned ms = static_cast<unsigned>((static_cast<unsigned long long>(frames) * 1000ull) / 60ull);
+    char out[32]; std::snprintf(out, sizeof(out), "%02u:%02u.%03u", ms / 60000u, (ms / 1000u) % 60u, ms % 1000u);
+    return out;
+}
+static std::string ape_escape_date_string(std::int64_t timestamp) {
+    if (timestamp <= 0) return "Unknown date";
+    const std::time_t t = static_cast<std::time_t>(timestamp); std::tm local{};
+#if defined(_WIN32)
+    if (localtime_s(&local, &t) != 0) return "Unknown date";
+#else
+    if (!localtime_r(&t, &local)) return "Unknown date";
+#endif
+    char out[48]; return std::strftime(out, sizeof(out), "%Y-%m-%d %H:%M", &local) ? out : "Unknown date";
+}
+static void ape_escape_load_monke_catalog() {
+    if (s_ape_monke_catalog_loaded) return;
+    s_ape_monke_catalog_loaded = true;
+    std::ifstream in(ape_escape_application_directory() / "assets" / "monkepedia.tsv");
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        const auto f = ape_escape_tsv_columns(line); if (f.size() < 5) continue;
+        const int id = static_cast<int>(ape_escape_monke_number(f[0]));
+        const int n = static_cast<int>(ape_escape_monke_number(f[2]));
+        auto it = std::find_if(s_ape_monke_stages.begin(), s_ape_monke_stages.end(),
+            [id](const ApeMonkeStage& v) { return v.id == id; });
+        if (it == s_ape_monke_stages.end()) {
+            s_ape_monke_stages.push_back({id, f[1], 0}); it = s_ape_monke_stages.end() - 1;
+        }
+        if (n <= 0) continue;
+        s_ape_monke_entries.push_back({id, n, f[1], f[3], f[4]}); ++it->entries;
+    }
+    if (!s_ape_monke_stages.empty() && !ape_escape_monke_stage(s_ape_monke_stage))
+        s_ape_monke_stage = s_ape_monke_stages.front().id;
+}
+static void ape_escape_load_run_history() {
+    if (s_ape_run_history_loaded) return;
+    s_ape_run_history_loaded = true;
+    std::ifstream in(ape_escape_data_directory() / "ape_escape_journal.tsv"); std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        const auto f = ape_escape_tsv_columns(line); if (f.size() < 8) continue;
+        ApeRunRecord r;
+        r.stage = static_cast<int>(ape_escape_monke_number(f[0]));
+        r.timestamp = static_cast<std::int64_t>(ape_escape_monke_number(f[1]));
+        r.frames = static_cast<unsigned>(ape_escape_monke_number(f[2]));
+        r.caught = static_cast<unsigned>(ape_escape_monke_number(f[3]));
+        r.triangles = static_cast<unsigned>(ape_escape_monke_number(f[4]));
+        r.coins = static_cast<unsigned>(ape_escape_monke_number(f[5]));
+        r.lives = static_cast<unsigned>(ape_escape_monke_number(f[6]));
+        r.mask = static_cast<std::uint32_t>(ape_escape_monke_number(f[7], 16));
+        s_ape_run_history.push_back(r); s_ape_ever_caught[r.stage] |= r.mask;
+        const auto best = s_ape_stage_bests.find(r.stage);
+        if (r.frames && (best == s_ape_stage_bests.end() || r.frames < best->second.frames))
+            s_ape_stage_bests[r.stage] = r;
+    }
+    if (s_ape_run_history.size() > 1000u)
+        s_ape_run_history.erase(s_ape_run_history.begin(), s_ape_run_history.end() - 1000);
+}
+static void ape_escape_clear_run_history() {
+    std::error_code ec;
+    std::filesystem::remove(ape_escape_data_directory() / "ape_escape_journal.tsv", ec);
+    if (ec) { s_ape_escape_quick_status = "Could not clear history: " + ec.message(); return; }
+    s_ape_run_history.clear(); s_ape_ever_caught.clear(); s_ape_stage_bests.clear();
+    s_ape_escape_quick_status = "Local history and recorded progress cleared.";
+}
+static std::string ape_escape_monke_lower(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return value;
+}
+static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th) {
+    ape_escape_load_monke_catalog(); ape_escape_load_run_history();
+    ImGui::TextColored(col(th.accent2), "MONKEPEDIA");
+    ImGui::TextWrapped("The Monkey Book — browse entries by stage. Captured marks come from local recorded runs; names that still need regional verification are clearly marked.");
+    const float gap = px(7.0f), bw = px(135.0f);
+    if (ImGui::Button("Monkepedia", ImVec2(bw, px(30)))) s_ape_monke_page = 0;
+    ImGui::SameLine(0, gap);
+    if (ImGui::Button("Play History", ImVec2(bw, px(30)))) s_ape_monke_page = 1;
+    ImGui::SameLine(0, gap);
+    if (ImGui::Button("Time Trials", ImVec2(bw, px(30)))) s_ape_monke_page = 2;
+    ImGui::Separator();
+    if (s_ape_monke_page == 0) {
+        if (s_ape_monke_stages.empty()) {
+            ImGui::TextWrapped("Catalogue missing: assets/monkepedia.tsv was not found. Reinstall the app."); return;
+        }
+        unsigned captured = 0, trackable = 0;
+        for (const auto& st : s_ape_monke_stages) {
+            const unsigned n = static_cast<unsigned>(std::min(st.entries, 20));
+            const std::uint32_t mask = s_ape_ever_caught[st.id];
+            captured += ape_escape_mask_count(mask & (n ? ((1u << n) - 1u) : 0u)); trackable += n;
+        }
+        ImGui::Text("Recorded discoveries: %u / %u trackable entries", captured, trackable);
+        ImGui::TextDisabled("Static entries are always available. Enable Progress Journal under Mods to save local progress.");
+        const float leftw = std::max(px(205.0f), ImGui::GetContentRegionAvail().x * 0.36f);
+        ImGui::BeginChild("ape_monke_stages", ImVec2(leftw, px(390)), ImGuiChildFlags_Borders);
+        ImGui::TextColored(col(th.accent2), "STAGES");
+        for (const auto& st : s_ape_monke_stages) {
+            const unsigned n = static_cast<unsigned>(std::min(st.entries, 20));
+            const std::uint32_t mask = s_ape_ever_caught[st.id];
+            const unsigned c = ape_escape_mask_count(mask & (n ? ((1u << n) - 1u) : 0u));
+            char label[160];
+            if (st.entries) std::snprintf(label, sizeof(label), "%s  %u/%u", st.name.c_str(), c, n);
+            else std::snprintf(label, sizeof(label), "%s  (challenge)", st.name.c_str());
+            if (ImGui::Selectable(label, s_ape_monke_stage == st.id)) {
+                s_ape_monke_stage = st.id; s_ape_monke_entry = 1; s_ape_monke_search[0] = '\0';
+            }
+        }
+        ImGui::EndChild(); ImGui::SameLine(0, gap);
+        ImGui::BeginChild("ape_monke_entries", ImVec2(0, px(390)), ImGuiChildFlags_Borders);
+        const auto* st = ape_escape_monke_stage(s_ape_monke_stage);
+        if (st) {
+            ImGui::TextColored(col(th.accent2), "%s", st->name.c_str());
+            ImGui::SetNextItemWidth(-1);
+            ImGui::InputText("Search##monkepedia", s_ape_monke_search, sizeof(s_ape_monke_search));
+            const std::string q = ape_escape_monke_lower(s_ape_monke_search);
+            const std::uint32_t mask = s_ape_ever_caught[st->id]; bool selected_exists = false;
+            for (const auto& e : s_ape_monke_entries) {
+                if (e.stage != st->id) continue;
+                const std::string hay = ape_escape_monke_lower(e.name + " " + e.alias + " " + e.stage_name);
+                if (!q.empty() && hay.find(q) == std::string::npos) continue;
+                const bool can_track = e.index <= 20;
+                const bool caught = can_track && (mask & (1u << (e.index - 1))) != 0u;
+                char label[256];
+                std::snprintf(label, sizeof(label), "%02d  %s%s", e.index, e.name.c_str(),
+                    !can_track ? "  [NOT TRACKED]" : (caught ? "  [CAUGHT]" : ""));
+                if (ImGui::Selectable(label, s_ape_monke_entry == e.index)) {
+                    s_ape_monke_entry = e.index; selected_exists = true;
+                }
+                if (s_ape_monke_entry == e.index) selected_exists = true;
+            }
+            if (!selected_exists) s_ape_monke_entry = 0;
+            const auto e = std::find_if(s_ape_monke_entries.begin(), s_ape_monke_entries.end(),
+                [&](const ApeMonkeEntry& v) { return v.stage == s_ape_monke_stage && v.index == s_ape_monke_entry; });
+            if (e != s_ape_monke_entries.end()) {
+                ImGui::Separator(); ImGui::TextColored(col(th.accent), "%s", e->name.c_str());
+                ImGui::Text("Stage entry: %02d", e->index);
+                if (!e->alias.empty()) ImGui::TextWrapped("Alternate regional label: %s", e->alias.c_str());
+                if (e->index > 20) ImGui::TextWrapped("Listed in the book, but current game-state mapping exposes only 20 capture flags.");
+                else if (mask & (1u << (e->index - 1))) ImGui::TextColored(col(th.good), "Captured in at least one recorded run.");
+                else ImGui::TextDisabled("No recorded capture yet, or Progress Journal has not recorded this stage.");
+                ImGui::TextWrapped("Monkey level, speed, attack, alert and personality fields await verified North-American profile data.");
+            }
+        }
+        ImGui::EndChild();
+    } else if (s_ape_monke_page == 1) {
+        ImGui::TextColored(col(th.accent2), "PLAY HISTORY & PROGRESS");
+        ImGui::TextWrapped("Stage exits are stored locally. No history is uploaded and the journal never writes to game RAM.");
+        ImGui::Text("Recorded stage exits: %u", static_cast<unsigned>(s_ape_run_history.size()));
+        ImGui::Text("Stages with an observed best: %u", static_cast<unsigned>(s_ape_stage_bests.size()));
+        ImGui::Separator();
+        if (s_ape_run_history.empty()) {
+            ImGui::TextWrapped("No history yet. Enable Progress Journal in Mods, play a stage, and exit it normally.");
+        } else {
+            const std::size_t first = s_ape_run_history.size() > 20u ? s_ape_run_history.size() - 20u : 0u;
+            for (std::size_t i = s_ape_run_history.size(); i > first; --i) {
+                const auto& r = s_ape_run_history[i - 1];
+                ImGui::Text("%s | %s | %s | %u captured", ape_escape_date_string(r.timestamp).c_str(),
+                    ape_escape_monke_stage_name(r.stage).c_str(), ape_escape_time_string(r.frames).c_str(), r.caught);
+                ImGui::TextDisabled("Triangles %u   Specter coins %u   Lives %u", r.triangles, r.coins, r.lives);
+                ImGui::Separator();
+            }
+        }
+        if (ImGui::Button("Open History File", ImVec2(px(170), px(32)))) {
+            const auto path = ape_escape_data_directory() / "ape_escape_journal.tsv";
+            if (std::filesystem::is_regular_file(path)) ape_escape_open_url(ape_escape_file_url(path));
+            else s_ape_escape_quick_status = "No history file exists yet.";
+        }
+        ImGui::SameLine(0, gap);
+        if (ImGui::Button("Clear History...", ImVec2(px(145), px(32)))) ImGui::OpenPopup("Clear Local Ape Escape History");
+        if (ImGui::BeginPopupModal("Clear Local Ape Escape History", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextWrapped("Delete local attempts and recorded captured-entry progress?");
+            if (ImGui::Button("Cancel", ImVec2(px(90), px(30)))) ImGui::CloseCurrentPopup();
+            ImGui::SameLine();
+            if (ImGui::Button("Delete History", ImVec2(px(125), px(30)))) {
+                ape_escape_clear_run_history(); ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    } else {
+        ImGui::TextColored(col(th.accent2), "TIME TRIALS");
+        ImGui::TextWrapped("Fastest observed stage-exit timer using the game's 60 Hz clock. These are practice records, not certified speedrun results: this version cannot verify successful clears, assist-mod use or retry semantics.");
+        if (s_ape_stage_bests.empty()) ImGui::TextDisabled("No records yet. Enable Progress Journal in Mods and play a stage.");
+        else if (ImGui::BeginTable("ape_monke_times", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+            ImGui::TableSetupColumn("Stage"); ImGui::TableSetupColumn("Best observed");
+            ImGui::TableSetupColumn("Captured"); ImGui::TableSetupColumn("Last record");
+            ImGui::TableHeadersRow();
+            for (const auto& st : s_ape_monke_stages) {
+                const auto found = s_ape_stage_bests.find(st.id); if (found == s_ape_stage_bests.end()) continue;
+                const auto& r = found->second;
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted(st.name.c_str());
+                ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(ape_escape_time_string(r.frames).c_str());
+                ImGui::TableSetColumnIndex(2); ImGui::Text("%u / %d", r.caught, st.entries);
+                ImGui::TableSetColumnIndex(3); ImGui::TextUnformatted(ape_escape_date_string(r.timestamp).c_str());
+            }
+            ImGui::EndTable();
+        }
+    }
+    if (!s_ape_escape_quick_status.empty()) {
+        ImGui::Spacing(); ImGui::TextWrapped("%s", s_ape_escape_quick_status.c_str());
+    }
+}
+'''
+
 QUICK_TOOLS = r'''
     // APE_ESCAPE_QUICK_TOOLS
     ImGui::Spacing();
@@ -855,6 +1100,16 @@ def main() -> int:
             1,
         )
 
+    # Standard-library utilities used by the Monkey Book and journal view.
+    if "APE_ESCAPE_MONKEPEDIA_INCLUDES" not in launcher_text:
+        if args.check:
+            return fail("Monkepedia standard-library includes have not been applied.", 1)
+        launcher_text = launcher_text.replace(
+            INCLUDE_ANCHOR,
+            INCLUDE_ANCHOR + "\n#include <cctype> // APE_ESCAPE_MONKEPEDIA_INCLUDES\n#include <cstdint>\n#include <ctime>\n#include <sstream",
+            1,
+        )
+
     # Declare per-user preferences before draw_crt_background reads reduce_motion.
     if PREFS_MARKER not in launcher_text:
         if args.check:
@@ -868,6 +1123,73 @@ def main() -> int:
         launcher_text = launcher_text.replace(DRAW_ANCHOR, PREFS_HELPER + "\n" + DRAW_ANCHOR, 1)
     elif "ape_escape_draw_accessibility_settings" not in launcher_text:
         return fail("Accessibility preferences exist but their settings UI is missing.")
+
+    # The Monkey Book is a dedicated launcher view with local journal subpages.
+    model_path = ui_root / MODEL_HEADER
+    if not model_path.is_file():
+        return fail("Required launcher model header is missing.", 2)
+    model_text = model_path.read_text(encoding="utf-8")
+    if MONKEPEDIA_VIEW_MARKER not in model_text:
+        if args.check:
+            return fail("Monkepedia view enum has not been applied.", 1)
+        enum_anchor = "    LNG_VIEW_CREDITS,"
+        if model_text.count(enum_anchor) != 1:
+            return fail("Pinned launcher model no longer matches the guarded Monkepedia enum anchor.")
+        model_text = model_text.replace(
+            enum_anchor, enum_anchor + "\n    LNG_VIEW_MONKEPEDIA, /* " + MONKEPEDIA_VIEW_MARKER + " */", 1)
+        model_path.write_text(model_text, encoding="utf-8")
+
+    helper_marker = "APE_ESCAPE_MONKEPEDIA_HELPER"
+    if helper_marker not in launcher_text:
+        if args.check:
+            return fail("Monkepedia helper has not been applied.", 1)
+        if launcher_text.count(DRAW_ANCHOR) != 1:
+            return fail("Pinned launcher no longer matches the guarded Monkepedia helper anchor.")
+        launcher_text = launcher_text.replace(DRAW_ANCHOR, MONKEPEDIA_HELPER + "\n" + DRAW_ANCHOR, 1)
+
+    nav_marker = "APE_ESCAPE_MONKEPEDIA_NAV"
+    if nav_marker not in launcher_text:
+        if args.check:
+            return fail("Monkepedia navigation has not been applied.", 1)
+        old_nav = (
+            "            const int count = 1 + (m->mods ? 1 : 0) +\n"
+            "                              (m->has_assist_tools ? 1 : 0) +\n"
+            "                              ((m->credits_text && m->credits_text[0]) ? 1 : 0);\n"
+            "            const float w = px(110.0f);\n"
+            "            const float total = w * count + gap * (count - 1);\n"
+            "            ImGui::SetCursorPos(ImVec2(right - total, y));\n"
+            "            if (ImGui::Button(ui_text(\"Settings\"), ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_SETTINGS);"
+        )
+        new_nav = (
+            "            /* APE_ESCAPE_MONKEPEDIA_NAV */\n"
+            "            const int count = 2 + (m->mods ? 1 : 0) +\n"
+            "                              (m->has_assist_tools ? 1 : 0) +\n"
+            "                              ((m->credits_text && m->credits_text[0]) ? 1 : 0);\n"
+            "            const float w = px(96.0f);\n"
+            "            const float total = w * count + gap * (count - 1);\n"
+            "            ImGui::SetCursorPos(ImVec2(right - total, y));\n"
+            "            if (ImGui::Button(ui_text(\"Settings\"), ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_SETTINGS);\n"
+            "            ImGui::SameLine(0, gap);\n"
+            "            if (ImGui::Button(\"Monkepedia\", ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_MONKEPEDIA);"
+        )
+        if launcher_text.count(old_nav) != 1:
+            return fail("Pinned launcher navigation no longer matches the guarded Monkepedia nav anchor.")
+        launcher_text = launcher_text.replace(old_nav, new_nav, 1)
+
+    body_marker = "APE_ESCAPE_MONKEPEDIA_BODY"
+    if body_marker not in launcher_text:
+        if args.check:
+            return fail("Monkepedia body dispatch has not been applied.", 1)
+        body_anchor = "        case LNG_VIEW_CREDITS:      draw_credits(m, th);             break;"
+        if launcher_text.count(body_anchor) != 1:
+            return fail("Pinned launcher view switch no longer matches the guarded Monkepedia body anchor.")
+        launcher_text = launcher_text.replace(
+            body_anchor,
+            body_anchor + "\n        case LNG_VIEW_MONKEPEDIA: /* " + body_marker + " */ ape_escape_draw_monke_pedia(m, th); break;",
+            1)
 
     # Add the accessibility card at the end of the Settings page.
     if ACCESSIBILITY_MARKER not in launcher_text:
@@ -1111,10 +1433,10 @@ def main() -> int:
         logo_dest.write_bytes(logo_tga)
 
     if args.check:
-        print("Ape Escape theme/logo, Nightly updater, accessibility preferences, quick tools, and full keyboard defaults are present.")
+        print("Ape Escape theme/logo, Monkepedia, local journal, rollback, accessibility, quick tools, and full keyboard defaults are present.")
     else:
         launcher_path.write_text(launcher_text, encoding="utf-8")
-        print("Applied Ape Escape theme/logo and nvd123 Nightly updater patches.")
+        print("Applied Ape Escape theme/logo, Monkepedia, local journal, rollback, and nvd123 Nightly updater patches.")
     return 0
 
 if __name__ == "__main__":
