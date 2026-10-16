@@ -87,21 +87,34 @@ def download_dropbox_api(candidate: Path) -> None:
     stream_response(request, candidate)
 
 
-def normalized_shared_url(url: str) -> str:
+def shared_url_variants(url: str) -> list[tuple[str, str]]:
+    """Try Dropbox's direct-render and forced-download modes without printing the URL."""
     parts = urlsplit(url)
-    if parts.hostname and parts.hostname.lower().endswith("dropbox.com"):
-        query = parse_qsl(parts.query, keep_blank_values=True)
-        if any(key == "dl" for key, _ in query):
-            query = [(key, "1" if key == "dl" else value) for key, value in query]
-        else:
-            query.append(("dl", "1"))
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
-    return url
+    if not (parts.hostname and parts.hostname.lower().endswith("dropbox.com")):
+        return [("provided URL", url)]
+
+    base_query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True)
+                  if key not in {"dl", "raw"}]
+    raw_query = urlencode(base_query + [("raw", "1")])
+    download_query = urlencode(base_query + [("dl", "1")])
+    raw_url = urlunsplit((parts.scheme, parts.netloc, parts.path, raw_query, ""))
+    download_url = urlunsplit((parts.scheme, parts.netloc, parts.path, download_query, ""))
+    variants = [("Dropbox raw=1", raw_url), ("Dropbox dl=1", download_url)]
+
+    # Legacy /s/<id>/<name> public links can use Dropbox's content host directly.
+    if parts.path.startswith("/s/") and parts.hostname.lower() in {"www.dropbox.com", "dropbox.com"}:
+        content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, urlencode(base_query), ""))
+        variants.append(("Dropbox content host", content_url))
+
+    # Keep order while deduplicating links that were already in the desired mode.
+    seen: set[str] = set()
+    return [(label, candidate) for label, candidate in variants
+            if not (candidate in seen or seen.add(candidate))]
 
 
 def download_shared_url(url: str, candidate: Path) -> None:
     request = Request(
-        normalized_shared_url(url),
+        url,
         headers={"User-Agent": "ApeEscapeRecomp-CI/1.0"},
     )
     stream_response(request, candidate)
@@ -158,13 +171,14 @@ def main() -> int:
                 return 0
 
         if shared_url:
-            if try_source(
-                "shared download URL",
-                lambda path: download_shared_url(shared_url, path),
-                candidate,
-                destination,
-            ):
-                return 0
+            for label, url in shared_url_variants(shared_url):
+                if try_source(
+                    label,
+                    lambda path, candidate_url=url: download_shared_url(candidate_url, path),
+                    candidate,
+                    destination,
+                ):
+                    return 0
 
         print(
             "No source produced a valid CHD. Check that the Dropbox API path "
