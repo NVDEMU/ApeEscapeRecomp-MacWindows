@@ -872,7 +872,7 @@ def main() -> int:
             reduce_anchor +
             "    // " + reduce_marker + ": replace gradients and scanlines with a flat surface.\n"
             "    if (g_ape_escape_preferences.reduce_motion) {\n"
-            "        bg->AddRectFilled(origin, ImVec2(origin.x + size.x, origin.y + size.y), ink);\n"
+            "        bg->AddRectFilled(origin, ImVec2(origin.x + size.x, origin.y + size.y), imcol(th.background));\n"
             "        return;\n"
             "    }\n"
         )
