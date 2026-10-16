@@ -626,10 +626,16 @@ QUICK_TOOLS = r'''
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::TextColored(col(th.accent2), "QUICK TOOLS");
-    if (m->rom_present && m->rom_full[0])
+    if (m->rom_present && m->rom_full[0]) {
         ImGui::TextWrapped("Selected disc: %s", m->rom_full);
-    else
+        const bool disc_verified = launcher_model_rom_verified(m);
+        ImGui::TextColored(col(disc_verified ? th.good : th.warn),
+                           "Disc verification: %s",
+                           disc_verified ? "Verified" : "Not verified");
+    } else {
         ImGui::TextDisabled("No disc selected yet.");
+        ImGui::TextDisabled("Disc verification is unavailable until a disc is selected.");
+    }
     ImGui::TextWrapped("Open your data, save, and disc folders, or inspect your installed build.");
     const std::string build_info = ape_escape_build_info();
     ImGui::TextWrapped("%s", build_info.c_str());
