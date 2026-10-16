@@ -199,6 +199,9 @@ static void nightmare_mode_vblank(void) {
   psx_mod_write_half(LIVES,3u);
   g_nightmare_lives_applied=1;
   psx_mod_counter_add("ape.challenge.nightmare.started",1u);
+ } else if(psx_mod_read_half(LIVES)>3u) {
+  /* Extra-life pickups cannot raise the global allowance above three. */
+  psx_mod_write_half(LIVES,3u);
  }
 
  /* Clamp full health and healing back to one. Never restore zero HP after a hit. */

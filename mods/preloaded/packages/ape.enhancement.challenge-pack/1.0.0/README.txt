@@ -12,6 +12,6 @@ A compact in-game challenge HUD appears in the upper-left corner. All features a
 These are initial implementations and need in-game validation. They rely on the project's current mapping for gameplay state, health, lives and stage-timer fields. The stage timer, save-state loads, restarts and other active mods can affect a challenge run; this is not a certified speedrun timer.
 
 
-- **Nightmare Mode** — a combined full-game hardcore ruleset. You get three lives for the run, health is capped to a single hit (healing cannot raise it above one), and each stage has a three-minute limit using the game's own timer. The in-game HUD shows NIGHTMARE and the remaining time. This is deliberately brutal and remains off unless selected.
+- **Nightmare Mode** — a combined full-game hardcore ruleset. You get at most three lives for the entire run (extra-life pickups are capped), health is capped to a single hit (healing cannot raise it above one), and each stage has a three-minute limit using the game's own timer. The in-game HUD shows NIGHTMARE and the remaining time. This is deliberately brutal and remains off unless selected.
 
 Nightmare Mode is a first implementation: timer/death interactions, life-counter semantics and healing behavior must still be verified during a real gameplay run. Its life allowance is set once when the feature first reaches active gameplay in an application session; it is not refreshed every stage.

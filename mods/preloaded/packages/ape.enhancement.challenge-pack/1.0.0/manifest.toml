@@ -143,7 +143,7 @@ id = "ape.challenge.random-challenge"
 [[feature]]
 id = "nightmare-mode"
 name = "Nightmare Mode"
-description = "Full-game hardcore rules: health is capped at one hit, the run starts with three lives total, and each stage has a strict three-minute time limit. One toggle controls all three rules."
+description = "Full-game hardcore rules: health is capped at one hit, lives are capped at three for the entire run (including extra-life pickups), and each stage has a strict three-minute time limit. One toggle controls all three rules."
 group = "Challenges"
 default_enabled = false
 
