@@ -5,11 +5,11 @@
 <h1 align="center">Ape Escape Recompiled — Enhanced Edition</h1>
 
 <p align="center">
-  A fan-made, native PC/Mac project for revisiting Spike's first monkey-catching adventure.
+  A fan-made, native Windows/macOS/Linux project for revisiting Spike's first monkey-catching adventure.
   <br>
-  <a href="https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases">Get builds</a>
+  <a href="https://github.com/NVDEMU/ApeEscapeRecomp-MacWindowsLinux/releases">Get builds</a>
   ·
-  <a href="https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/actions">Build status</a>
+  <a href="https://github.com/NVDEMU/ApeEscapeRecomp-MacWindowsLinux/actions">Build status</a>
   ·
   <a href="ISSUES.md">Known issues and research notes</a>
 </p>
@@ -26,13 +26,14 @@ The project is still a work in progress. Getting to gameplay is not the same as 
 
 ## Choose your platform
 
-Nightly packages are produced by GitHub Actions when the build succeeds. Visit [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases) for the assets currently available.
+Nightly packages are produced by GitHub Actions when the build succeeds. Visit [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindowsLinux/releases) for the assets currently available.
 
 | Platform | Package to look for | Notes |
 | --- | --- | --- |
 | Windows, 64-bit | ZIP | Extract the package, then open the launcher executable. |
 | macOS, Apple Silicon | ZIP or DMG | For M-series Macs. |
 | macOS, Intel | ZIP or DMG | For Intel-based Macs. |
+| Linux, x86_64 | AppImage | Portable Linux package for x86_64 desktop systems. |
 
 ### First boot
 
@@ -73,7 +74,6 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 - **Gameplay Assist Pack** — separate Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets switches.
 - **Extended Draw Distance** — an experimental rendering tweak aimed at reducing certain distance pop-in paths.
 - **Quality-of-Life Tools** — Quick Retry, camera sensitivity, collectible counters, a monkey-progress panel and a level timer.
-- **Progress Journal** — optional local-only stage-exit history and captured-monkey observations. It never uploads data or modifies game state.
 - **Challenge Pack** — optional timed monkey hunts (3/5/10 minutes), no-damage runs, limited starting lives (1/3/5), and randomized challenges.
 - **Hardcore Challenges** — separate default-off toggles for **Monkey Mayhem**, an experimental rule intended to make monkeys act/alert more often, and **Nightmare Mode**, which automatically includes Monkey Mayhem alongside one-hit health, a three-life maximum (including extra lives), and a three-minute limit per stage. The monkey behavior mapping needs in-game validation.
 
@@ -91,17 +91,17 @@ Memory-card saves, save states and rewind are part of the project experience. Ke
 
 Open **Settings → Accessibility** to adjust launcher text size (80–150%), enable high-contrast colors, use larger controls and focus targets, or reduce background visual effects. These launcher-wide preferences save automatically in the operating system's per-user application-data folder, so replacing the macOS app bundle does not reset them. They do not enable or change gameplay mods.
 
-The dashboard's **Quick Tools** can open the app-data folder, save folder, or selected disc folder; show the installed channel, version, and commit; copy build information for a bug report; and open the Nightly release page for update history. **Roll Back Last Build** restores the package saved by an in-app update. The dedicated **Monkepedia** launcher tab contains source-linked North-American monkey profiles, local Play History & Progress, and Time Trials. Each listed profile shows its US-game name, Monkey Level, a concise description summary and a link to its source page. Entries without fully verified details are omitted rather than guessed; see [Monkepedia attribution and coverage](docs/MONKEPEDIA_ATTRIBUTION.md). Progress Journal is a separate default-off option under Mods. The updater preserves player configuration, the selected disc and BIOS paths, keyboard/controller mappings, memory cards, and custom mod content when replacing the macOS app bundle.
+The dashboard's **Quick Tools** can open the app-data folder, save folder, or selected disc folder; show the installed channel, version, and commit; copy build information for a bug report; and open the Nightly release page for update history. **Roll Back Last Build** restores the package saved by an in-app update. The dedicated **Monkepedia** launcher tab contains source-linked North-American monkey profiles and a manual caught checklist. Each listed profile shows its US-game name, Monkey Level, a concise description summary and a link to its source page. Entries without fully verified details are omitted rather than guessed; see [Monkepedia attribution and coverage](docs/MONKEPEDIA_ATTRIBUTION.md). Progress Journal is a separate default-off option under Mods. The Windows/macOS updater preserves player configuration, the selected disc and BIOS paths, keyboard/controller mappings, memory cards, and custom mod content when replacing the app. Linux AppImage updates are currently manual.
 
 ## Updates without hunting for downloads
 
-Use **Check for Nightly Updates** in the launcher to check this repository's \`macos-nightly\` release. The helper ships a verified HTTPS CA bundle for its standalone Python runtime, chooses the matching platform package, checks its SHA-256 checksum, and waits for the game application to close before installation. HTTPS certificate and hostname verification remain enabled. The Windows updater preserves saves and player configuration—including the selected disc, BIOS path, keyboard/controller settings, launcher preferences and mod enabled-state—while replacing shipped runtime files. macOS user data remains separate from the app bundle.
+Use **Check for Nightly Updates** in supported Windows/macOS builds to check this repository's Nightly release. Linux users can download the AppImage directly from Releases. The helper ships a verified HTTPS CA bundle for its standalone Python runtime, chooses the matching platform package, checks its SHA-256 checksum, and waits for the game application to close before installation. HTTPS certificate and hostname verification remain enabled. The Windows updater preserves saves and player configuration—including the selected disc, BIOS path, keyboard/controller settings, launcher preferences and mod enabled-state—while replacing shipped runtime files. macOS user data remains separate from the app bundle.
 
-Older builds made before the updater was added cannot run an in-app update. Install one recent package from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases) first. If a suitable asset or a valid checksum is unavailable, use the release page instead of forcing an install.
+Older builds made before the updater was added cannot run an in-app update. Install one recent package from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindowsLinux/releases) first. If a suitable asset or a valid checksum is unavailable, use the release page instead of forcing an install.
 
 ## How the project is built
 
-The Windows x64, Apple Silicon and Intel Mac packages are built in GitHub Actions. Successful pushes run the packaging and validation jobs; release assets include platform packages, SHA-256 sidecars and updater metadata.
+The Windows x64, Apple Silicon and Intel Mac packages, plus a Linux x86_64 AppImage, are built in GitHub Actions. Successful pushes run the packaging and validation jobs; release assets include platform packages, SHA-256 sidecars and updater metadata.
 
 The original-disc image used by CI is stored outside the public repository. The workflow retrieves it from configured private Dropbox credentials or the optional \`APE_ESCAPE_DISC_URL\` secret, then converts and verifies it in temporary build storage. The disc image, retail BIOS, and generated game translation are not committed as public source assets.
 
