@@ -849,7 +849,7 @@ static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th)
             const std::uint32_t mask = s_ape_ever_caught[st->id]; bool selected_exists = false;
             for (const auto& e : s_ape_monke_entries) {
                 if (e.stage != st->id) continue;
-                const std::string hay = ape_escape_monke_lower(e.name + " " + e.alias + " " + e.stage_name);
+                const std::string hay = ape_escape_monke_lower(e.name + " " + e.description + " " + e.stage_name);
                 if (!q.empty() && hay.find(q) == std::string::npos) continue;
                 const bool can_track = e.index <= 20;
                 const bool caught = can_track && (mask & (1u << (e.index - 1))) != 0u;
