@@ -187,6 +187,14 @@ if (Test-Path (Join-Path $Root "LICENSE"))           { Copy-Item (Join-Path $Roo
 $UpdateDir = Join-Path $Stage 'update'
 New-Item -ItemType Directory -Force $UpdateDir | Out-Null
 Copy-Item (Join-Path $Root 'tools/in_app_updater.py') (Join-Path $UpdateDir 'updater.py')
+# Bundle CA roots for the standalone Python used by the in-app updater. The
+# updater still verifies both the certificate chain and hostname on every request.
+$UpdaterCaBundle = Join-Path $UpdateDir 'cacert.pem'
+Invoke-Native { & curl.exe --fail --silent --show-error --location --retry 3 --output $UpdaterCaBundle 'https://curl.se/ca/cacert.pem' } 'download updater CA bundle'
+if (!(Test-Path -LiteralPath $UpdaterCaBundle) -or (Get-Item -LiteralPath $UpdaterCaBundle).Length -lt 10000) {
+    throw "The updater CA certificate bundle was not downloaded correctly."
+}
+Invoke-Native { & python -c "import ssl,sys; c=ssl.create_default_context(cafile=sys.argv[1]); assert c.verify_mode == ssl.CERT_REQUIRED and c.check_hostname" $UpdaterCaBundle } 'validate updater CA bundle'
 New-Item -ItemType Directory -Force (Join-Path $Stage 'docs') | Out-Null
 Copy-Item (Join-Path $Root 'docs/AOT_OVERLAYS.md') (Join-Path $Stage 'docs')
 $BundledBiosSrc = Join-Path $BuildPath "bios"

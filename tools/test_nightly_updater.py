@@ -2,8 +2,10 @@
 """Offline tests for the Nightly updater's checksum and archive-path checks."""
 import importlib.util
 from pathlib import Path
+import ssl
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +17,29 @@ SPEC.loader.exec_module(UPDATER)
 
 
 class NightlyUpdaterTests(unittest.TestCase):
+    def test_updater_tls_context_requires_certificate_and_hostname_verification(self):
+        context = UPDATER._https_context()
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    def test_metadata_request_passes_a_verified_tls_context(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"ok": true}'
+
+        with mock.patch.object(UPDATER.urllib.request, "urlopen", return_value=Response()) as urlopen:
+            self.assertEqual(UPDATER.http_bytes("https://example.invalid/test"), b'{"ok": true}')
+
+        context = urlopen.call_args.kwargs["context"]
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
     def test_checksum_parser_selects_exact_asset(self):
         text = "a" * 64 + "  other.zip\n" + "b" * 64 + "  current.zip\n"
         self.assertEqual(UPDATER.checksum_for_asset(text, "current.zip"), "b" * 64)

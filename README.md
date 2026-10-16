@@ -94,7 +94,7 @@ The dashboard's **Quick Tools** can open the app-data folder, save folder, or se
 
 ## Updates without hunting for downloads
 
-Use **Check for Nightly Updates** in the launcher to check this repository's \`macos-nightly\` release. The helper chooses the matching platform package, checks its SHA-256 checksum and waits for the game application to close before installation. The Windows updater preserves saves and player configuration—including the selected disc, BIOS path, keyboard/controller settings, launcher preferences and mod enabled-state—while replacing shipped runtime files. macOS user data remains separate from the app bundle.
+Use **Check for Nightly Updates** in the launcher to check this repository's \`macos-nightly\` release. The helper ships a verified HTTPS CA bundle for its standalone Python runtime, chooses the matching platform package, checks its SHA-256 checksum, and waits for the game application to close before installation. HTTPS certificate and hostname verification remain enabled. The Windows updater preserves saves and player configuration—including the selected disc, BIOS path, keyboard/controller settings, launcher preferences and mod enabled-state—while replacing shipped runtime files. macOS user data remains separate from the app bundle.
 
 Older builds made before the updater was added cannot run an in-app update. Install one recent package from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases) first. If a suitable asset or a valid checksum is unavailable, use the release page instead of forcing an install.
 

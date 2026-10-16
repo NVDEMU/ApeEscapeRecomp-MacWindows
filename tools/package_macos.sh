@@ -67,6 +67,19 @@ cp "$ROOT/packaging/macos/START_HERE.txt" "$RESOURCES/START_HERE.txt"
 [ ! -f "$ROOT/framework_pins.txt" ] || cp "$ROOT/framework_pins.txt" "$RESOURCES/framework_pins.txt"
 mkdir -p "$RESOURCES/update"
 cp "$ROOT/tools/in_app_updater.py" "$RESOURCES/update/updater.py"
+# The bundled Python interpreter may not have a usable CA store. Ship the
+# current curl/Mozilla CA bundle beside the updater and verify it at build time.
+curl --fail --silent --show-error --location --retry 3 \
+  --output "$RESOURCES/update/cacert.pem" "https://curl.se/ca/cacert.pem"
+python3 - "$RESOURCES/update/cacert.pem" <<'PY'
+import ssl
+import sys
+
+context = ssl.create_default_context(cafile=sys.argv[1])
+if context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname:
+    raise SystemExit("Updater CA bundle did not enable HTTPS certificate verification.")
+print(f"Validated updater CA bundle: {sys.argv[1]}")
+PY
 if [ -f "$ROOT/BUILD_PROVENANCE.json" ]; then
   cp "$ROOT/BUILD_PROVENANCE.json" "$RESOURCES/BUILD_PROVENANCE.json"
 fi

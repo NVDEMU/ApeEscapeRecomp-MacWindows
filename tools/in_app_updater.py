@@ -16,6 +16,7 @@ import os
 import platform
 import shutil
 import signal
+import ssl
 import stat
 import subprocess
 import sys
@@ -79,6 +80,21 @@ def ask_yes_no(message: str, title: str = "Ape Escape Recompiled Updater") -> bo
     return False
 
 
+def _https_context() -> ssl.SSLContext:
+    """Build a verified TLS context, preferring the CA bundle shipped beside this helper."""
+    ca_file = Path(__file__).resolve().with_name("cacert.pem")
+    if ca_file.is_file():
+        try:
+            return ssl.create_default_context(cafile=str(ca_file))
+        except (OSError, ssl.SSLError) as exc:
+            raise RuntimeError(
+                f"The updater's bundled CA certificate file could not be loaded: {ca_file}"
+            ) from exc
+    # Developer/test source checkouts may not have run a release packaging step.
+    # Still require normal certificate and hostname verification in that case.
+    return ssl.create_default_context()
+
+
 def http_bytes(url: str, timeout: int = 45) -> bytes:
     request = urllib.request.Request(
         url,
@@ -88,7 +104,7 @@ def http_bytes(url: str, timeout: int = 45) -> bytes:
             "Cache-Control": "no-cache",
         },
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with urllib.request.urlopen(request, timeout=timeout, context=_https_context()) as response:
         return response.read()
 
 
@@ -128,7 +144,7 @@ def platform_suffixes() -> tuple[str, str]:
 
 def download_to(url: str, destination: Path) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=120) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(request, timeout=120, context=_https_context()) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output, length=1024 * 1024)
     if not destination.is_file() or destination.stat().st_size == 0:
         raise RuntimeError("GitHub returned an empty download.")
