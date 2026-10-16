@@ -33,6 +33,7 @@ The game boots through the introduction and title screens into playable levels. 
 - **Skip FMVs** — fast-forward full-motion videos through their normal game-side completion path.
 - **Quick Gadget Select** — a gadget-row shortcut inspired by later Ape Escape games.
 - **Gameplay Assist Pack** — independently toggle Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets. These assists only write during active gameplay and are opt-in.
+- **Quality-of-Life Tools** — optional Quick Retry (experimental fast respawn, not a full stage reload), D-pad camera sensitivity, collectible counters, a caught-monkey progress tracker and an in-game level timer. See the package README for details.
 
 The widescreen mode can reveal distance pop-in inherited from the original game. The optional **Extended Draw Distance** mod clamps ten traced GTE depth-bucket paths into the last safe ordering-table range rather than raising the game's bounds. It is experimental: it may change the original look or increase rendering work, and other game-side culling can still cause pop-in. Keep it off for stock behavior, and disable it if you see visual glitches. See [ISSUES.md](ISSUES.md) for remaining work.
 

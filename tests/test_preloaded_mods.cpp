@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 7) return fail("expected seven package manifests");
+    if (manifest_count != 8) return fail("expected eight package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -80,7 +80,12 @@ int main(int argc, char** argv) {
              "ape.assist.infinite-health",
              "ape.assist.infinite-air",
              "ape.assist.all-gadgets",
-             "ape.draw-distance.extended"}) {
+             "ape.draw-distance.extended",
+             "ape.qol.quick-retry",
+             "ape.qol.camera-sensitivity",
+             "ape.qol.collectible-stats",
+             "ape.qol.enhanced-radar",
+             "ape.qol.speedrun-timer"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
     }
@@ -89,14 +94,65 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 7)
-        return fail("expected seven package families");
+    if (manager.packages().size() != 8)
+        return fail("expected eight package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
         !default_plan.plugins.empty()) {
         return fail("a mod feature was enabled by default");
     }
+
+    // Every Quality-of-Life feature resolves independently and is default-off.
+    for (const auto& [feature, plugin] :
+         {std::pair{"quick-retry", "ape.qol.quick-retry"},
+          std::pair{"camera-sensitivity", "ape.qol.camera-sensitivity"},
+          std::pair{"collectible-stats", "ape.qol.collectible-stats"},
+          std::pair{"enhanced-radar", "ape.qol.enhanced-radar"},
+          std::pair{"speedrun-timer", "ape.qol.speedrun-timer"}}) {
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.qol-tools", feature, true, &error)) {
+            return fail(error);
+        }
+        const auto enabled_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!enabled_plan.ok || !enabled_plan.writes.empty() ||
+            enabled_plan.plugins.size() != 1 ||
+            enabled_plan.plugins.front().id != plugin) {
+            return fail(std::string("wrong QoL plugin plan for ") + feature);
+        }
+        if (!manager.set_feature_enabled(
+                "ape.enhancement.qol-tools", feature, false, &error)) {
+            return fail(error);
+        }
+        const auto disabled_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!disabled_plan.ok || !disabled_plan.plugins.empty() ||
+            !disabled_plan.writes.empty()) {
+            return fail(std::string("QoL feature remained active after disabling ") +
+                        feature);
+        }
+    }
+
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.qol-tools", "camera-sensitivity", true, &error)) {
+        return fail(error);
+    }
+    for (const char* choice : {"25", "50", "75", "100"}) {
+        if (!manager.set_feature_option(
+                "ape.enhancement.qol-tools", "camera-sensitivity",
+                "sensitivity", choice, &error)) {
+            return fail(error);
+        }
+        const auto sensitivity_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!sensitivity_plan.ok || sensitivity_plan.plugins.size() != 1 ||
+            sensitivity_plan.plugins.front().id != "ape.qol.camera-sensitivity") {
+            return fail(std::string("wrong camera sensitivity plugin for ") + choice);
+        }
+    }
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.qol-tools", "camera-sensitivity", false, &error)) {
+        return fail(error);
+    }
+
 
     // Every Gameplay Assist is a separate, default-off launcher feature.
     for (const auto& [feature, plugin] :
@@ -242,9 +298,9 @@ int main(int argc, char** argv) {
         return fail("Quick Gadget Select patched guest code while disabled");
 
     fs::remove_all(root, ec);
-    std::cout << "Ape Escape preloaded mods: 7 packages, every feature default-off, "
+    std::cout << "Ape Escape preloaded mods: 8 packages, every feature default-off, "
                  "3 widescreen choices, 7 interpolated frame-rate choices, "
                  "four independent Gameplay Assist toggles, Extended Draw Distance opt-in, "
-                 "Quick Gadget Select guarded patch, stock guest code untouched by default\n";
+                 "Quick Gadget Select guarded patch, five independent QoL features and camera choices\n";
     return 0;
 }
