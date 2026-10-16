@@ -88,9 +88,9 @@ Memory-card saves, save states and rewind are part of the project experience. Ke
 
 ### Accessibility and launcher tools
 
-Open **Settings → Accessibility** to adjust launcher text size (80–150%), switch to a high-contrast palette, or reduce background visual effects. These are launcher-wide settings, save automatically to `ape_escape_launcher.ini`, and do not enable or change gameplay mods.
+Open **Settings → Accessibility** to adjust launcher text size (80–150%), enable high-contrast colors, use larger controls and focus targets, or reduce background visual effects. These launcher-wide preferences save automatically in the operating system's per-user application-data folder, so replacing the macOS app bundle does not reset them. They do not enable or change gameplay mods.
 
-The dashboard's **Quick Tools** can open the app data folder, save folder, selected disc folder, or Nightly release page. The data folder shortcut is useful for finding configuration files and making backups.
+The dashboard's **Quick Tools** can open the app-data folder, save folder, or selected disc folder; show the installed channel, version, and commit; copy build information for a bug report; and open the Nightly release page for update history. The updater preserves player configuration, the selected disc and BIOS paths, keyboard/controller mappings, memory cards, and custom mod content when replacing the macOS app bundle.
 
 ## Updates without hunting for downloads
 
