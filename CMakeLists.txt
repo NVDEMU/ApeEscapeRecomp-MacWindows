@@ -18,6 +18,7 @@ execute_process(
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/apply_recomp_ui_update_patch.py"
             --ui-root "${RECOMP_UI_ROOT}"
+            --project-root "${CMAKE_CURRENT_SOURCE_DIR}"
     RESULT_VARIABLE APE_UPDATER_PATCH_RESULT
 )
 if(NOT APE_UPDATER_PATCH_RESULT EQUAL 0)
