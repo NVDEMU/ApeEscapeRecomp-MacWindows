@@ -43,7 +43,19 @@ Nightly packages are produced by GitHub Actions when the build succeeds. Visit [
 
 On macOS, the app is ad-hoc signed rather than notarized, so Gatekeeper may ask you to approve opening it. The game image and any retail BIOS must remain in your own storage.
 
-A DualShock-compatible controller is the natural fit: move Spike with the left stick and aim the net with the right stick. Keyboard bindings are available too, and controller bindings can be changed from the launcher.
+A DualShock-compatible controller is the natural fit: move Spike with the left stick and aim the net with the right stick. Keyboard and controller bindings can be changed in the launcher. The default keyboard layout is:
+
+| Input | Key |
+| --- | --- |
+| D-pad | **T** up, **G** down, **F** left, **H** right |
+| Left stick | **W** up, **S** down, **A** left, **D** right |
+| Right stick | Arrow keys |
+| Cross / Circle / Square / Triangle | **X / C / Z / V** |
+| L1 / L2 / R1 / R2 | **Q / E / Space / R** |
+| L3 / R3 | **Y / U** |
+| Start / Select | **Return / Shift** |
+
+Fresh installs and **Reset to Defaults** use this layout. An earlier unmodified default layout is upgraded once; custom keyboard binds are left alone.
 
 ## Make it your own
 
@@ -74,9 +86,15 @@ The launcher offers resolution and window-size controls, fullscreen, rendering s
 
 Memory-card saves, save states and rewind are part of the project experience. Keep backups of important save data while using experimental builds or mods. Settings and saves are kept outside the macOS app bundle; avoid deleting the user data folder when replacing an app.
 
+### Accessibility and launcher tools
+
+Open **Settings → Accessibility** to adjust launcher text size (80–150%), switch to a high-contrast palette, or reduce background visual effects. These are launcher-wide settings, save automatically to `ape_escape_launcher.ini`, and do not enable or change gameplay mods.
+
+The dashboard's **Quick Tools** can open the app data folder, save folder, selected disc folder, or Nightly release page. The data folder shortcut is useful for finding configuration files and making backups.
+
 ## Updates without hunting for downloads
 
-Use **Check for Nightly Updates** in the launcher to check this repository's \`macos-nightly\` release. The helper chooses the matching platform package, checks its SHA-256 checksum and waits for the game application to close before installation. The Windows updater is designed to preserve saves, settings and other user-added files; macOS user data remains separate from the app bundle.
+Use **Check for Nightly Updates** in the launcher to check this repository's \`macos-nightly\` release. The helper chooses the matching platform package, checks its SHA-256 checksum and waits for the game application to close before installation. The Windows updater preserves saves and player configuration—including the selected disc, BIOS path, keyboard/controller settings, launcher preferences and mod enabled-state—while replacing shipped runtime files. macOS user data remains separate from the app bundle.
 
 Older builds made before the updater was added cannot run an in-app update. Install one recent package from [Releases](https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases) first. If a suitable asset or a valid checksum is unavailable, use the release page instead of forcing an install.
 
