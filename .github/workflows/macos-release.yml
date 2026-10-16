@@ -457,8 +457,21 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build ccache pkg-config libsdl3-dev libgl1-mesa-dev libegl1-mesa-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev libasound2-dev libpulse-dev libudev-dev libdrm-dev libgbm-dev imagemagick curl file patchelf desktop-file-utils fuse3 libfuse2 mame-tools
+          sudo apt-get install -y build-essential cmake ninja-build ccache pkg-config libgl1-mesa-dev libegl1-mesa-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev libasound2-dev libpulse-dev libudev-dev libdrm-dev libgbm-dev imagemagick curl file patchelf desktop-file-utils fuse3 libfuse2 mame-tools
           command -v chdman
+      - name: Build SDL3 from source for Ubuntu 24.04
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch release-3.2.8 https://github.com/libsdl-org/SDL.git "$RUNNER_TEMP/SDL"
+          cmake -S "$RUNNER_TEMP/SDL" -B "$RUNNER_TEMP/SDL/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF \
+            -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+          cmake --build "$RUNNER_TEMP/SDL/build" --parallel "$BUILD_JOBS"
+          sudo cmake --install "$RUNNER_TEMP/SDL/build"
+          sudo ldconfig
+          pkg-config --modversion sdl3
       - name: Record pinned framework revision
         id: pins
         run: echo "framework=$(git -C psxrecomp-v4 rev-parse HEAD)" >> "$GITHUB_OUTPUT"
