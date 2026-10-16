@@ -51,8 +51,18 @@ class DownloadDiscTests(unittest.TestCase):
 
     def test_old_dropbox_public_link_adds_content_host_fallback(self):
         variants = shared_url_variants("https://www.dropbox.com/s/abc123/disc.chd?dl=0")
-        self.assertEqual(variants[-1][0], "Dropbox content host")
+        self.assertEqual(variants[-1][0], "Dropbox legacy content host")
         self.assertTrue(variants[-1][1].startswith("https://dl.dropboxusercontent.com/s/abc123/"))
+
+    def test_modern_scl_link_adds_direct_content_host_fallback(self):
+        variants = shared_url_variants(
+            "https://www.dropbox.com/scl/fi/shareid/disc.chd?rlkey=abc&dl=0"
+        )
+        label, url = variants[-1]
+        self.assertEqual(label, "Dropbox modern content host")
+        self.assertTrue(url.startswith("https://dl.dropboxusercontent.com/scl/fi/shareid/"))
+        self.assertIn("rlkey=abc", url)
+        self.assertIn("dl=0", url)
 
 
 if __name__ == "__main__":
