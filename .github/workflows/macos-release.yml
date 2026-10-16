@@ -24,14 +24,14 @@ jobs:
           python3 tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui --check
       - name: Check updater helper syntax and archive safety
         run: |
-          python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py
+          python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py tools/download_disc.py
           python3 tools/test_nightly_updater.py
       - name: Check audiovisual guardrails
         run: python3 tools/test_audiovisual_guardrails.py
       - name: Check Monkepedia catalogue and manual caught checklist
         run: python3 tools/test_monke_catalog.py
       - name: Check packaging shell syntax
-        run: bash -n tools/package_macos.sh tools/package_appimage.sh tools/test_appimage_layout.sh
+        run: bash -n tools/package_macos.sh && bash -n tools/package_appimage.sh && bash -n tools/test_appimage_layout.sh
       - name: Check calibrated controller defaults
         run: python3 tools/check_controller_defaults.py
       - name: Check Challenge Pack source and manifest
@@ -187,29 +187,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
-          DEST="$RUNNER_TEMP/Ape Escape (USA).chd"
-          if [ -n "$DISC_URL" ]; then
-            # Convenience mode: the secret contains a Dropbox shared link with
-            # dl=1. The link itself is never printed or checked into the repo.
-            curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$DEST"
-          else
-            # Private mode: exchange a refresh token for a short-lived access
-            # token, then download by Dropbox path without any public link.
-            TOKEN_JSON="$(curl --fail --silent --show-error --user "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET" \
-              --data-urlencode "grant_type=refresh_token" \
-              --data-urlencode "refresh_token=$DROPBOX_REFRESH_TOKEN" \
-              https://api.dropbox.com/oauth2/token)"
-            ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
-            echo "::add-mask::$ACCESS_TOKEN"
-            curl --fail --silent --show-error --location --retry 3 \
-              -X POST \
-              -H "Authorization: Bearer $ACCESS_TOKEN" \
-              -H 'Dropbox-API-Arg: {"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' \
-              https://content.dropboxapi.com/2/files/download \
-              -o "$DEST"
-          fi
-          test -s "$DEST"
-          echo "Downloaded CHD into runner temp storage; it will not be committed or attached to the release."
+          python3 tools/download_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd"
 
       - name: Build the recompiler and bundled OpenBIOS
         run: |
@@ -358,20 +336,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $dest = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).chd'
-          if ($env:DISC_URL) {
-            & curl.exe --fail --location --retry 3 --retry-delay 2 $env:DISC_URL --output $dest
-            if ($LASTEXITCODE -ne 0) { throw "CHD download failed (curl exit $LASTEXITCODE)." }
-          } else {
-            $credential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($env:DROPBOX_APP_KEY):$($env:DROPBOX_APP_SECRET)"))
-            $token = Invoke-RestMethod -Method Post -Uri 'https://api.dropbox.com/oauth2/token' -Headers @{ Authorization = "Basic $credential" } -Body @{ grant_type = 'refresh_token'; refresh_token = $env:DROPBOX_REFRESH_TOKEN }
-            Write-Output "::add-mask::$($token.access_token)"
-            $headers = @{ Authorization = "Bearer $($token.access_token)"; 'Dropbox-API-Arg' = '{"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' }
-            Invoke-WebRequest -UseBasicParsing -Uri 'https://content.dropboxapi.com/2/files/download' -Headers $headers -OutFile $dest
-          }
-          if (!(Test-Path -LiteralPath $dest) -or (Get-Item -LiteralPath $dest).Length -eq 0) {
-            throw 'The original-disc CHD download is empty.'
-          }
-          Write-Host 'Downloaded CHD to runner temp storage; it will not be checked into the repository or release.'
+          & python 'tools/download_disc.py' $dest
+          if ($LASTEXITCODE -ne 0) { throw "Disc download validation failed (exit $LASTEXITCODE)." }
 
       - name: Verify and prepare the original disc
         shell: powershell
@@ -496,16 +462,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p apeescape
-          DEST="$RUNNER_TEMP/Ape Escape (USA).chd"
-          if [ -n "$DISC_URL" ]; then
-            curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$DEST"
-          else
-            TOKEN_JSON="$(curl --fail --silent --show-error --user "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET" --data-urlencode "grant_type=refresh_token" --data-urlencode "refresh_token=$DROPBOX_REFRESH_TOKEN" https://api.dropbox.com/oauth2/token)"
-            ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
-            echo "::add-mask::$ACCESS_TOKEN"
-            curl --fail --silent --show-error --location --retry 3 -X POST -H "Authorization: Bearer $ACCESS_TOKEN" -H 'Dropbox-API-Arg: {"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' https://content.dropboxapi.com/2/files/download -o "$DEST"
-          fi
-          test -s "$DEST"
+          python3 tools/download_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd"
+
       - name: Build recompiler and OpenBIOS
         run: |
           set -euo pipefail
