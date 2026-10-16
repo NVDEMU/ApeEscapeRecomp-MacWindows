@@ -540,6 +540,8 @@ jobs:
           test -n "$APPIMAGE"
           chmod +x "$APPIMAGE"
           bash tools/test_appimage_layout.sh "$APPIMAGE"
+          cmake --build build-appimage --target ape_stick_response_test ape_preloaded_mods_test --parallel 2
+          ctest --test-dir build-appimage --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
           sha256sum "$APPIMAGE" | sed "s|  $APPIMAGE|  $(basename "$APPIMAGE")|" > release-linux/SHA256SUMS-linux-x86_64.txt
       - name: Upload Linux x86_64 release
         uses: actions/upload-artifact@v4
