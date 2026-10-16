@@ -28,7 +28,7 @@ jobs:
           python3 tools/test_nightly_updater.py
       - name: Check audiovisual guardrails
         run: python3 tools/test_audiovisual_guardrails.py
-      - name: Check Monkepedia catalogue and journal safety
+      - name: Check Monkepedia catalogue and manual caught checklist
         run: python3 tools/test_monke_catalog.py
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh

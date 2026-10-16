@@ -14,4 +14,3 @@ The **Challenge Pack** adds timed monkey hunts, no-damage runs, limited starting
 
 The separate **Hardcore Challenges** package adds default-off **Monkey Mayhem** and **Nightmare Mode**. Monkey Mayhem experimentally zeroes a community-reported monkey-action cooldown during active play; that RAM mapping requires in-game validation. Nightmare Mode automatically includes Monkey Mayhem with one-hit health, a three-life maximum that blocks extra-life increases, and a three-minute per-stage time limit. Its HUD displays the stage countdown.
 
-The separate **Progress Journal** package (default-off) adds local-only stage-exit history for the launcher Monkepedia and Time Trials tabs. It never changes game RAM or uploads results; its North-American memory mappings still need in-game verification.
