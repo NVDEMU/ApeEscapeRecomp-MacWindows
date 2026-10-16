@@ -49,6 +49,7 @@ static inline LauncherTheme launcher_theme_ape_escape(void) {
     t.scanlines       = 0;
     return t;
 }
+'''
 
 INCLUDES = r'''#if defined(_WIN32)
   #ifndef WIN32_LEAN_AND_MEAN
