@@ -649,7 +649,7 @@ ACCESSIBILITY_INSERT = r'''
 '''
 
 MONKEPEDIA_HELPER = r'''/* APE_ESCAPE_MONKEPEDIA_HELPER: local-only Monkey Book and play history. */
-struct ApeMonkeEntry { int stage; int index; std::string stage_name, name, alias; };
+struct ApeMonkeEntry { int stage; int index; int monkey_level; std::string stage_name, name, description, source_url; };
 struct ApeMonkeStage { int id; std::string name; int entries; };
 struct ApeRunRecord {
     int stage = -1; std::int64_t timestamp = 0; unsigned frames = 0;
@@ -707,16 +707,17 @@ static void ape_escape_load_monke_catalog() {
     std::string line;
     while (std::getline(in, line)) {
         if (line.empty() || line[0] == '#') continue;
-        const auto f = ape_escape_tsv_columns(line); if (f.size() < 5) continue;
+        const auto f = ape_escape_tsv_columns(line); if (f.size() < 7) continue;
         const int id = static_cast<int>(ape_escape_monke_number(f[0]));
         const int n = static_cast<int>(ape_escape_monke_number(f[2]));
+        const int level = static_cast<int>(ape_escape_monke_number(f[4]));
         auto it = std::find_if(s_ape_monke_stages.begin(), s_ape_monke_stages.end(),
             [id](const ApeMonkeStage& v) { return v.id == id; });
         if (it == s_ape_monke_stages.end()) {
             s_ape_monke_stages.push_back({id, f[1], 0}); it = s_ape_monke_stages.end() - 1;
         }
         if (n <= 0) continue;
-        s_ape_monke_entries.push_back({id, n, f[1], f[3], f[4]}); ++it->entries;
+        s_ape_monke_entries.push_back({id, n, level, f[1], f[3], f[5], f[6]}); ++it->entries;
     }
     if (!s_ape_monke_stages.empty() && !ape_escape_monke_stage(s_ape_monke_stage))
         s_ape_monke_stage = s_ape_monke_stages.front().id;
@@ -803,7 +804,7 @@ static std::string ape_escape_monke_lower(std::string value) {
 static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th) {
     ape_escape_load_monke_catalog(); ape_escape_load_run_history();
     ImGui::TextColored(col(th.accent2), "MONKEPEDIA");
-    ImGui::TextWrapped("The Monkey Book — browse entries by stage. Captured marks come from local recorded runs; names that still need regional verification are clearly marked.");
+    ImGui::TextWrapped("The Monkey Book for the original 1999 North-American game. Each listed profile includes a source link. Profiles without a fully verified US name and description are intentionally omitted rather than guessed.");
     const float gap = px(7.0f), bw = px(135.0f);
     if (ImGui::Button("Monkepedia", ImVec2(bw, px(30)))) s_ape_monke_page = 0;
     ImGui::SameLine(0, gap);
@@ -821,7 +822,7 @@ static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th)
             const std::uint32_t mask = s_ape_ever_caught[st.id];
             captured += ape_escape_mask_count(mask & (n ? ((1u << n) - 1u) : 0u)); trackable += n;
         }
-        ImGui::Text("Recorded discoveries: %u / %u trackable entries", captured, trackable);
+        ImGui::Text("Recorded captures: %u / %u listed, trackable profiles", captured, trackable);
         ImGui::TextDisabled("Static entries are always available. Enable Progress Journal under Mods to save local progress.");
         const float leftw = std::max(px(205.0f), ImGui::GetContentRegionAvail().x * 0.36f);
         ImGui::BeginChild("ape_monke_stages", ImVec2(leftw, px(390)), ImGuiChildFlags_Borders);
@@ -866,11 +867,13 @@ static void ape_escape_draw_monke_pedia(LauncherModel*, const LauncherTheme& th)
             if (e != s_ape_monke_entries.end()) {
                 ImGui::Separator(); ImGui::TextColored(col(th.accent), "%s", e->name.c_str());
                 ImGui::Text("Stage entry: %02d", e->index);
-                if (!e->alias.empty()) ImGui::TextWrapped("Alternate regional label: %s", e->alias.c_str());
-                if (e->index > 20) ImGui::TextWrapped("Listed in the book, but current game-state mapping exposes only 20 capture flags.");
+                ImGui::Text("Monkey Level: %d", e->monkey_level);
+                ImGui::TextWrapped("Profile description: %s", e->description.c_str());
+                if (e->index > 20) ImGui::TextWrapped("The current game-state observer tracks at most 20 capture flags.");
                 else if (mask & (1u << (e->index - 1))) ImGui::TextColored(col(th.good), "Captured in at least one recorded run.");
-                else ImGui::TextDisabled("No recorded capture yet, or Progress Journal has not recorded this stage.");
-                ImGui::TextWrapped("Monkey level, speed, attack, alert and personality fields await verified North-American profile data.");
+                else ImGui::TextDisabled("No capture was observed in the local recorded history.");
+                if (ImGui::Button("View source profile", ImVec2(px(170), px(30))))
+                    ape_escape_open_url(e->source_url);
             }
         }
         ImGui::EndChild();
