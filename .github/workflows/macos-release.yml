@@ -30,6 +30,38 @@ jobs:
         run: bash -n tools/package_macos.sh
       - name: Check calibrated controller defaults
         run: python3 tools/check_controller_defaults.py
+      - name: Check Challenge Pack source and manifest
+        run: |
+          set -euo pipefail
+          cc -std=c99 -Wall -Wextra -Werror -fsyntax-only -Ipsxrecomp-v4/runtime/include src/mods/ape_challenge_pack_plugin.c
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          path = Path("mods/preloaded/packages/ape.enhancement.challenge-pack/1.0.0/manifest.toml")
+          manifest = tomllib.loads(path.read_text(encoding="utf-8"))
+          expected = {"time-trial", "no-damage", "limited-lives", "random-challenge"}
+          features = manifest.get("feature", [])
+          ids = {feature.get("id") for feature in features}
+          if ids != expected:
+              raise SystemExit(f"Unexpected Challenge Pack features: {ids}")
+          if any(feature.get("default_enabled") is not False for feature in features):
+              raise SystemExit("Every Challenge Pack feature must default to off")
+          plugins = {plugin.get("id") for plugin in manifest.get("plugin", [])}
+          expected_plugins = {
+              "ape.challenge.time-trial",
+              "ape.challenge.no-damage",
+              "ape.challenge.limited-lives",
+              "ape.challenge.random-challenge",
+          }
+          if plugins != expected_plugins:
+              raise SystemExit(f"Unexpected Challenge Pack plugin mapping: {plugins}")
+          source = Path("src/mods/ape_challenge_pack_plugin.c").read_text(encoding="utf-8")
+          for plugin in expected_plugins:
+              if plugin not in source:
+                  raise SystemExit(f"Missing native callback registration: {plugin}")
+          print("Challenge Pack: C syntax, four default-off features and native plugin IDs verified.")
+          PY
       - name: Check Extended Draw Distance catalog and guarded sites
         run: python3 tools/check_draw_distance_defaults.py
       - name: Check draw-distance audit tool syntax
