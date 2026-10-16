@@ -28,7 +28,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-REPOSITORY = "NVDEMU/ApeEscapeRecomp-MacWindows"
+REPOSITORY = "NVDEMU/ApeEscapeRecomp-MacWindowsLinux"
 RELEASE_TAG = "macos-nightly"
 API_RELEASE = f"https://api.github.com/repos/{REPOSITORY}/releases/tags/{RELEASE_TAG}"
 USER_AGENT = "nvd123-ApeEscapeRecomp-Updater/1.0"
