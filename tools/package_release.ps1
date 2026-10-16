@@ -253,6 +253,17 @@ $RecompTools = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "tools")).Pa
 $RecompInc = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "runtime/include")).Path
 $StagedGameToml = Join-Path $Stage 'game.toml'
 $AotPython = Join-Path $MingwBin 'python.exe'
+if (-not (Test-Path -LiteralPath $AotPython)) {
+    # MSYS2 installs the MinGW tools at C:\msys64\mingw64\bin, but some
+    # runner images omit MinGW's Python package. The AOT driver is pure Python
+    # and takes an explicit MinGW gcc.exe path, so the runner's CPython is a
+    # safe fallback; Add-OverlayToolchain owns the shipped embedded Python.
+    $PythonCommand = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($PythonCommand) { $AotPython = $PythonCommand.Source }
+}
+if (-not (Test-Path -LiteralPath $AotPython)) {
+    throw "No Python interpreter found for the original-disc AOT pipeline."
+}
 Invoke-Native {
     & $AotPython (Join-Path $RecompTools 'aot_overlay_pipeline.py') release `
         --profile (Join-Path $Root 'aot/overlays.json') `

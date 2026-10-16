@@ -326,8 +326,8 @@ jobs:
           if (!(Test-Path -LiteralPath $cue) -or !(Test-Path -LiteralPath $bin)) {
             throw 'CHD extraction did not create both CUE and BIN files.'
           }
-          $python = 'C:\msys64\mingw64\bin\python.exe'
-          if (!(Test-Path -LiteralPath $python)) { throw "MSYS2 Python not found at $python." }
+          $python = (Get-Command python.exe -ErrorAction Stop).Source
+          Write-Host "Using Python for disc prep: $python"
           & $python 'psxrecomp-v4/tools/prepare_disc.py' $cue --config game.toml
           if ($LASTEXITCODE -ne 0) { throw "prepare_disc.py failed (exit $LASTEXITCODE)." }
           if (!(Test-Path -LiteralPath 'apeescape/SCUS_944.23')) { throw 'Prepared Ape Escape executable is missing.' }
