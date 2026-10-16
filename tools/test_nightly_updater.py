@@ -230,6 +230,35 @@ class NightlyUpdaterTests(unittest.TestCase):
             self.assertFalse((new_mods / "preloaded" / "old-bundled").exists())
             self.assertTrue((new_mods / "preloaded" / "new-bundled" / "manifest.toml").is_file())
 
+    def test_rollback_snapshot_and_restore_preserve_windows_user_data(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            install = root / "install"
+            install.mkdir()
+            (install / "ApeEscapeRecomp.exe").write_text("old runtime", encoding="utf-8")
+            (install / "runtime.dll").write_text("old runtime dll", encoding="utf-8")
+            (install / "config.ini").write_text("player settings", encoding="utf-8")
+            (install / "saves").mkdir()
+            (install / "saves" / "card.mcd").write_bytes(b"save")
+            (install / "mods").mkdir()
+            (install / "mods" / "state.toml").write_text("enabled=false", encoding="utf-8")
+            with mock.patch.object(UPDATER, "rollback_archive_path", return_value=root / "user-data" / "rollback.zip"):
+                saved = UPDATER.snapshot_windows_install(install)
+                (install / "ApeEscapeRecomp.exe").write_text("new runtime", encoding="utf-8")
+                (install / "runtime.dll").write_text("new runtime dll", encoding="utf-8")
+                (install / "new-file.dll").write_text("new only", encoding="utf-8")
+                staging = root / "staging"
+                staging.mkdir()
+                restored = UPDATER.restore_windows_rollback(install, staging)
+                self.assertEqual(restored.read_text(encoding="utf-8"), "old runtime")
+                self.assertEqual((install / "runtime.dll").read_text(encoding="utf-8"), "old runtime dll")
+                self.assertFalse((install / "new-file.dll").exists())
+                self.assertEqual((install / "config.ini").read_text(encoding="utf-8"), "player settings")
+                self.assertEqual((install / "saves" / "card.mcd").read_bytes(), b"save")
+                self.assertEqual((install / "mods" / "state.toml").read_text(encoding="utf-8"), "enabled=false")
+                self.assertEqual(saved, root / "user-data" / "rollback.zip")
+                self.assertTrue(saved.is_file())
+
     def test_windows_update_rejects_unsafe_archive_paths(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

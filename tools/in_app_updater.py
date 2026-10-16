@@ -267,6 +267,185 @@ def validate_single_app_bundle(staging: Path) -> Path:
     return apps[0]
 
 
+
+def updater_data_directory() -> Path:
+    """Return the writable user-data folder shared with the launcher wrapper."""
+    override = os.environ.get("APE_ESCAPE_RECOMP_DATA_DIR")
+    if override:
+        return Path(override).expanduser()
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Ape Escape Recompiled"
+    if os.name == "nt":
+        base = os.environ.get("APPDATA")
+        return Path(base) / "NVDEMU" / "Ape Escape Recompiled - Enhanced Edition" if base else Path.home() / "AppData" / "Roaming" / "NVDEMU" / "Ape Escape Recompiled - Enhanced Edition"
+    base = os.environ.get("XDG_DATA_HOME")
+    return Path(base) / "NVDEMU" / "Ape Escape Recompiled - Enhanced Edition" if base else Path.home() / ".local" / "share" / "NVDEMU" / "Ape Escape Recompiled - Enhanced Edition"
+
+
+def rollback_archive_path() -> Path:
+    return updater_data_directory() / "rollback" / "previous-build.zip"
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink(missing_ok=True)
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+def snapshot_windows_install(install_root: Path) -> Path:
+    """Back up only shipped files; player data is deliberately excluded."""
+    root = install_root.resolve()
+    destination = rollback_archive_path()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + f".tmp-{os.getpid()}")
+    try:
+        with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
+            for path in sorted(root.rglob("*")):
+                rel = path.relative_to(root)
+                if should_preserve_windows_update_path(rel):
+                    continue
+                if rel.parts and rel.parts[0] == "mods" and len(rel.parts) > 1:
+                    if rel.parts[1] in ("custom", "installed"):
+                        continue
+                if path.is_dir() or path.is_symlink():
+                    continue
+                if not path.is_file():
+                    continue
+                resolved = path.resolve()
+                try:
+                    resolved.relative_to(root)
+                except ValueError:
+                    continue
+                archive.write(path, rel.as_posix())
+        with zipfile.ZipFile(temporary, "r") as archive:
+            if "ApeEscapeRecomp.exe" not in archive.namelist():
+                raise RuntimeError("Could not create a rollback backup: current Windows package is missing ApeEscapeRecomp.exe.")
+            verify_archive_paths(temporary, allow_symlinks=False)
+        os.replace(temporary, destination)
+        return destination
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def snapshot_macos_install(install_root: Path) -> Path:
+    current = app_bundle_from_root(install_root)
+    destination = rollback_archive_path()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + f".tmp-{os.getpid()}")
+    try:
+        subprocess.run(
+            ["/usr/bin/ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(current), str(temporary)],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+        )
+        if not temporary.is_file() or temporary.stat().st_size == 0:
+            raise RuntimeError("macOS did not create a valid rollback archive.")
+        with zipfile.ZipFile(temporary, "r") as archive:
+            app_names = {PurePosixPath(n).parts[0] for n in archive.namelist() if n and not n.startswith("__MACOSX/")}
+            if current.name not in app_names:
+                raise RuntimeError("The rollback archive does not contain the current .app bundle.")
+        os.replace(temporary, destination)
+        return destination
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def restore_macos_rollback(install_root: Path, staging_parent: Path) -> Path:
+    archive_path = rollback_archive_path()
+    if not archive_path.is_file():
+        raise RuntimeError("No previous build backup exists yet. Install a newer build once to create one.")
+    current = app_bundle_from_root(install_root)
+    extracted = staging_parent / "rollback-extract"
+    extracted.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive_path), str(extracted)],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    candidate = validate_single_app_bundle(extracted)
+    desired = extracted / current.name
+    if candidate != desired:
+        candidate.rename(desired)
+        candidate = desired
+    preserve_macos_user_data(current, candidate)
+    backup = current.parent / f".{current.name}.rollback-{os.getpid()}"
+    os.replace(current, backup)
+    try:
+        os.replace(candidate, current)
+    except Exception:
+        os.replace(backup, current)
+        raise
+    shutil.rmtree(backup, ignore_errors=True)
+    return current
+
+
+def _clear_windows_package_preserving_user_data(install_root: Path) -> None:
+    for child in install_root.iterdir():
+        if child.name in WINDOWS_PRESERVED_ROOTS:
+            continue
+        if child.name == "mods" and child.is_dir() and not child.is_symlink():
+            for item in child.iterdir():
+                if item.name in ("state.toml", "custom", "installed"):
+                    continue
+                _remove_path(item)
+            continue
+        _remove_path(child)
+
+
+def restore_windows_rollback(install_root: Path, staging_parent: Path) -> Path:
+    archive_path = rollback_archive_path()
+    if not archive_path.is_file():
+        raise RuntimeError("No previous build backup exists yet. Install a newer build once to create one.")
+    extracted = staging_parent / "rollback-extract"
+    extracted.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive_path, "r") as archive:
+        verify_archive_paths(archive_path, allow_symlinks=False)
+        archive.extractall(extracted)
+    if not (extracted / "ApeEscapeRecomp.exe").is_file():
+        raise RuntimeError("The previous Windows build backup is incomplete.")
+    _clear_windows_package_preserving_user_data(install_root)
+    for source in extracted.rglob("*"):
+        relative = source.relative_to(extracted)
+        if should_preserve_windows_update_path(relative):
+            continue
+        target = install_root / relative
+        if source.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+    return install_root / "ApeEscapeRecomp.exe"
+
+
+def rollback_install(install_root: Path, parent_pid: int) -> Path:
+    archive = rollback_archive_path()
+    if not archive.is_file():
+        raise RuntimeError("There is no saved previous build to roll back to yet. Install a newer build first.")
+    if not ask_yes_no(
+        "Restore the previous version of Ape Escape Recompiled?\n\n"
+        "Your saves, selected disc/BIOS, settings, and key mappings will be preserved. "
+        "The rollback backup will remain available after this operation.",
+        title="Ape Escape Recompiled — Roll Back"
+    ):
+        raise RuntimeError("Rollback cancelled.")
+    staging = Path(tempfile.mkdtemp(prefix="ape-escape-rollback-"))
+    try:
+        wait_for_parent_exit(parent_pid)
+        if sys.platform == "darwin":
+            restored = restore_macos_rollback(install_root, staging)
+            subprocess.Popen(["/usr/bin/open", str(restored)], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        elif os.name == "nt":
+            restored = restore_windows_rollback(install_root, staging)
+            subprocess.Popen([str(restored)], cwd=str(install_root),
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL,
+                             creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
+        else:
+            raise RuntimeError("In-app rollback supports macOS and Windows only.")
+        return restored
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+
+
 def install_macos(archive_path: Path, install_root: Path, staging_parent: Path) -> Path:
     current = app_bundle_from_root(install_root)
     extracted = staging_parent / "extract"
@@ -284,6 +463,8 @@ def install_macos(archive_path: Path, install_root: Path, staging_parent: Path) 
     # Carry forward user-owned configuration, disc/BIOS choices, keyboard and
     # controller binds, saves, launcher preferences, and user-installed mods.
     preserve_macos_user_data(current, candidate)
+    # Keep one package-only restore point before changing the installed app.
+    snapshot_macos_install(install_root)
 
     backup = current.parent / f".{current.name}.backup-{os.getpid()}"
     try:
@@ -389,6 +570,9 @@ def install_windows(archive_path: Path, install_root: Path, staging_parent: Path
     if not (extracted / "ApeEscapeRecomp.exe").is_file():
         raise RuntimeError("The Windows update ZIP is missing ApeEscapeRecomp.exe.")
 
+    # Snapshot the package after the candidate is validated, before any files move.
+    snapshot_windows_install(install_root)
+
     # Merge only files shipped by the new package. Never overwrite user data,
     # and do not delete unknown/user-installed files from the installation.
     for source in extracted.rglob("*"):
@@ -474,10 +658,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--install-root", required=True, type=Path)
     parser.add_argument("--parent-pid", type=int, required=True)
+    parser.add_argument("--rollback", action="store_true",
+                        help="restore the last saved application build without using the network")
     args = parser.parse_args()
     install_root = args.install_root.resolve()
 
     try:
+        if args.rollback:
+            restored = rollback_install(install_root, args.parent_pid)
+            notify(f"Previous build restored successfully.\n\n{restored}")
+            return 0
         suffix, checksum_name = platform_suffixes()
         local = local_provenance(install_root)
         local_commit = str(local.get("commit", "")).lower()
