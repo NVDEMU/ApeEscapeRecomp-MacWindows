@@ -90,6 +90,7 @@ int main(int argc, char** argv) {
              "ape.challenge.no-damage",
              "ape.challenge.limited-lives",
              "ape.challenge.random-challenge",
+             "ape.challenge.monkey-mayhem",
              "ape.challenge.nightmare-mode"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin))
             return fail(std::string("could not register test plugin ") + id);
