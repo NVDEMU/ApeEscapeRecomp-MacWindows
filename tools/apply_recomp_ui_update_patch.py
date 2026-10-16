@@ -846,16 +846,10 @@ def main() -> int:
             "\n" + PSX_MIGRATION_FUNCTION + migration_tail,
             1,
         )
-        old_init = """        } else {
+        old_init = "            psx_kb_promote_empty_players();"
+        new_init = """            const int migrated_defaults = psx_kb_migrate_legacy_defaults();
             psx_kb_promote_empty_players();
-        }
-        s_psx_binds_init = 1;"""
-        new_init = """        } else {
-            const int migrated_defaults = psx_kb_migrate_legacy_defaults();
-            psx_kb_promote_empty_players();
-            if (migrated_defaults) psx_kb_write_ini(path);
-        }
-        s_psx_binds_init = 1;"""
+            if (migrated_defaults) psx_kb_write_ini(path);"""
         if ui_binds_text.count(old_init) != 1:
             return fail("Pinned PSX keybind initialization no longer matches the guarded migration call site.")
         ui_binds_text = ui_binds_text.replace(old_init, new_init, 1)
