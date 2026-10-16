@@ -5,7 +5,7 @@
 <h1 align="center">Ape Escape Recompiled — Enhanced Edition</h1>
 
 <p align="center">
-  A fan-made, native PC project for revisiting Spike's first monkey-catching adventure.
+  A fan-made, native PC/Mac project for revisiting Spike's first monkey-catching adventure.
   <br>
   <a href="https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases">Get builds</a>
   ·
