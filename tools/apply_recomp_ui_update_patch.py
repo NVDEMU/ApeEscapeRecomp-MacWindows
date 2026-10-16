@@ -1157,7 +1157,7 @@ def main() -> int:
             return fail("Monkepedia standard-library includes have not been applied.", 1)
         launcher_text = launcher_text.replace(
             INCLUDE_ANCHOR,
-            INCLUDE_ANCHOR + "\n#include <cctype> // APE_ESCAPE_MONKEPEDIA_INCLUDES\n#include <cstdint>\n#include <ctime>\n#include <sstream",
+            INCLUDE_ANCHOR + "\n#include <algorithm> // APE_ESCAPE_MONKEPEDIA_INCLUDES\n#include <cctype>\n#include <cstdint>\n#include <ctime>\n#include <sstream>",
             1,
         )
 
