@@ -264,6 +264,11 @@ def install_macos(archive_path: Path, install_root: Path, staging_parent: Path) 
         candidate.rename(candidate_name)
         candidate = candidate_name
 
+    # A macOS update replaces the whole .app bundle, unlike the Windows merge.
+    # Carry forward user-owned configuration, disc/BIOS choices, keyboard and
+    # controller binds, saves, launcher preferences, and user-installed mods.
+    preserve_macos_user_data(current, candidate)
+
     backup = current.parent / f".{current.name}.backup-{os.getpid()}"
     try:
         os.replace(current, backup)
@@ -295,6 +300,58 @@ WINDOWS_PRESERVED_ROOTS = {
     "launcher-window.ini",
     "ape_escape_launcher.ini",
 }
+MACOS_PRESERVED_ROOTS = WINDOWS_PRESERVED_ROOTS | {"game_options.toml"}
+
+
+def _copy_preserved_user_path(source: Path, destination: Path) -> None:
+    """Merge a user-owned path into a new app without replacing app files."""
+    if source.is_dir() and not source.is_symlink():
+        if destination.exists() and not destination.is_dir():
+            destination.unlink()
+        shutil.copytree(source, destination, dirs_exist_ok=True, symlinks=True)
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists() and destination.is_dir():
+        shutil.rmtree(destination)
+    if source.is_symlink():
+        if destination.exists() or destination.is_symlink():
+            destination.unlink()
+        destination.symlink_to(os.readlink(source), target_is_directory=source.is_dir())
+    else:
+        shutil.copy2(source, destination)
+
+
+def preserve_macos_user_data(current_bundle: Path, candidate_bundle: Path) -> None:
+    """Carry user data from the old .app into the replacement before swapping."""
+    old_root = current_bundle / "Contents" / "MacOS"
+    new_root = candidate_bundle / "Contents" / "MacOS"
+    if not old_root.is_dir() or not new_root.is_dir():
+        raise RuntimeError("Could not locate the old and new macOS application runtime folders.")
+
+    for relative_name in MACOS_PRESERVED_ROOTS:
+        source = old_root / relative_name
+        if not source.exists() and not source.is_symlink():
+            continue
+        _copy_preserved_user_path(source, new_root / relative_name)
+
+    # Preserve the mod on/off choices, but do not restore stale bundled mods:
+    # the new Nightly's preloaded package catalog should always win.
+    old_mods = old_root / "mods"
+    new_mods = new_root / "mods"
+    if old_mods.is_dir():
+        state_source = old_mods / "state.toml"
+        if state_source.is_file():
+            _copy_preserved_user_path(state_source, new_mods / "state.toml")
+        for source in old_mods.rglob("*"):
+            relative = source.relative_to(old_mods)
+            if not relative.parts or relative.parts[0] == "preloaded":
+                continue
+            if relative == Path("state.toml") or source.is_dir():
+                continue
+            target = new_mods / relative
+            if target.exists() or target.is_symlink():
+                continue  # shipped files from this Nightly take precedence
+            _copy_preserved_user_path(source, target)
 
 
 def should_preserve_windows_update_path(relative: Path) -> bool:
