@@ -101,10 +101,18 @@ def shared_url_variants(url: str) -> list[tuple[str, str]]:
     download_url = urlunsplit((parts.scheme, parts.netloc, parts.path, download_query, ""))
     variants = [("Dropbox raw=1", raw_url), ("Dropbox dl=1", download_url)]
 
-    # Legacy /s/<id>/<name> public links can use Dropbox's content host directly.
+    # Legacy /s/<id>/<name> links can use Dropbox's content host directly.
     if parts.path.startswith("/s/") and parts.hostname.lower() in {"www.dropbox.com", "dropbox.com"}:
         content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, urlencode(base_query), ""))
-        variants.append(("Dropbox content host", content_url))
+        variants.append(("Dropbox legacy content host", content_url))
+
+    # Current Dropbox links use /scl/fi/<share-id>/<name>?rlkey=... .
+    # The content host avoids an HTML viewer/interstitial and redirects less often;
+    # keep rlkey intact because it carries the recipient's access permission.
+    if parts.path.startswith("/scl/fi/") and parts.hostname.lower() in {"www.dropbox.com", "dropbox.com"}:
+        content_query = urlencode(base_query + [("dl", "0")])
+        content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, content_query, ""))
+        variants.append(("Dropbox modern content host", content_url))
 
     # Keep order while deduplicating links that were already in the desired mode.
     seen: set[str] = set()
