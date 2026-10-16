@@ -325,6 +325,7 @@ PREFS_STATE = r'''/* ape_escape_accessibility_preferences: per-user launcher-onl
 struct ApeEscapeLauncherPreferences {
     int text_percent = 100;
     bool high_contrast = false;
+    bool large_controls = false;
     bool reduce_motion = false;
 };
 static ApeEscapeLauncherPreferences g_ape_escape_preferences;
@@ -335,21 +336,49 @@ static std::string s_ape_escape_quick_status;
 '''
 
 PREFS_HELPER = r'''
-static std::filesystem::path ape_escape_data_directory() {
-    const char* override_dir = std::getenv("APE_ESCAPE_RECOMP_DATA_DIR");
-    if (override_dir && override_dir[0])
-        return std::filesystem::path(override_dir);
-    /* SDL3 returns a borrowed base-path string. Copy it into a filesystem path
-     * immediately; unlike SDL2, do not release this pointer with SDL_free(). */
+static std::filesystem::path ape_escape_application_directory() {
     const char* base = SDL_GetBasePath();
-    if (base && base[0]) return std::filesystem::path(base);
+    if (base && base[0]) return std::filesystem::path(base).lexically_normal();
     std::error_code ec;
     const auto cwd = std::filesystem::current_path(ec);
     return ec ? std::filesystem::path(".") : cwd;
 }
 
+static std::filesystem::path ape_escape_data_directory() {
+    const char* override_dir = std::getenv("APE_ESCAPE_RECOMP_DATA_DIR");
+    if (override_dir && override_dir[0])
+        return std::filesystem::path(override_dir);
+    /* SDL_GetPrefPath returns a writable, per-user path that survives replacing
+     * an app bundle: Application Support on macOS, AppData on Windows, and the
+     * platform's data directory on Linux. This is preferable to writing inside
+     * a signed/read-only .app bundle. */
+    char* pref_raw = SDL_GetPrefPath("NVDEMU", "Ape Escape Recompiled - Enhanced Edition");
+    if (pref_raw && pref_raw[0]) {
+        const std::filesystem::path pref(pref_raw);
+        SDL_free(pref_raw);
+        std::error_code ec;
+        std::filesystem::create_directories(pref, ec);
+        return pref;
+    }
+    if (pref_raw) SDL_free(pref_raw);
+    return ape_escape_application_directory();
+}
+
 static std::filesystem::path ape_escape_preferences_path() {
-    return ape_escape_data_directory() / "ape_escape_launcher.ini";
+    const auto path = ape_escape_data_directory() / "ape_escape_launcher.ini";
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec)) {
+        const auto legacy = ape_escape_application_directory() / "ape_escape_launcher.ini";
+        ec.clear();
+        if (legacy != path && std::filesystem::is_regular_file(legacy, ec)) {
+            ec.clear();
+            std::filesystem::create_directories(path.parent_path(), ec);
+            ec.clear();
+            std::filesystem::copy_file(
+                legacy, path, std::filesystem::copy_options::skip_existing, ec);
+        }
+    }
+    return path;
 }
 
 static void ape_escape_load_preferences() {
@@ -371,6 +400,8 @@ static void ape_escape_load_preferences() {
                 static_cast<int>(parsed < 80 ? 80 : parsed > 150 ? 150 : parsed);
         else if (key == "high_contrast")
             g_ape_escape_preferences.high_contrast = parsed != 0;
+        else if (key == "large_controls")
+            g_ape_escape_preferences.large_controls = parsed != 0;
         else if (key == "reduce_motion")
             g_ape_escape_preferences.reduce_motion = parsed != 0;
     }
@@ -388,6 +419,7 @@ static void ape_escape_save_preferences() {
     out << "# Ape Escape Recompiled launcher preferences; edited by the app.\n"
         << "text_percent=" << g_ape_escape_preferences.text_percent << "\n"
         << "high_contrast=" << (g_ape_escape_preferences.high_contrast ? 1 : 0) << "\n"
+        << "large_controls=" << (g_ape_escape_preferences.large_controls ? 1 : 0) << "\n"
         << "reduce_motion=" << (g_ape_escape_preferences.reduce_motion ? 1 : 0) << "\n";
     if (!out) s_ape_escape_quick_status = "Could not finish saving launcher preferences.";
     else s_ape_escape_quick_status = "Launcher preferences saved.";
@@ -415,6 +447,10 @@ static void ape_escape_apply_accessibility_theme(LauncherTheme& theme) {
         theme.row_height       = 48.0f;
         theme.scanlines        = 0;
         theme.scanline         = lng_rgba(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    if (g_ape_escape_preferences.large_controls) {
+        theme.row_height = 58.0f;
+        theme.focus_ring_width = 4.0f;
     }
     if (g_ape_escape_preferences.reduce_motion) theme.scanlines = 0;
 }
@@ -493,6 +529,55 @@ static bool ape_escape_open_nightly_page() {
         "https://github.com/NVDEMU/ApeEscapeRecomp-MacWindows/releases/tag/macos-nightly");
 }
 
+static std::string ape_escape_json_string(const std::string& json, const char* key) {
+    const std::string needle = std::string("\"") + key + "\"";
+    const std::size_t key_pos = json.find(needle);
+    if (key_pos == std::string::npos) return {};
+    const std::size_t colon = json.find(':', key_pos + needle.size());
+    if (colon == std::string::npos) return {};
+    const std::size_t quote = json.find('"', colon + 1);
+    if (quote == std::string::npos) return {};
+    std::string value;
+    bool escaped = false;
+    for (std::size_t i = quote + 1; i < json.size(); ++i) {
+        const char ch = json[i];
+        if (escaped) {
+            value.push_back(ch);
+            escaped = false;
+        } else if (ch == '\\') {
+            escaped = true;
+        } else if (ch == '"') {
+            return value;
+        } else {
+            value.push_back(ch);
+        }
+    }
+    return {};
+}
+
+static std::string ape_escape_build_info() {
+    const auto base = ape_escape_application_directory();
+#if defined(__APPLE__)
+    const auto provenance_path = (base / "../Resources/BUILD_PROVENANCE.json").lexically_normal();
+#else
+    const auto provenance_path = base / "BUILD_PROVENANCE.json";
+#endif
+    std::ifstream in(provenance_path);
+    if (!in) return "Installed build: metadata unavailable";
+    std::string json, line;
+    while (std::getline(in, line)) { json += line; json += '
+'; }
+    const std::string version = ape_escape_json_string(json, "version");
+    const std::string channel = ape_escape_json_string(json, "channel");
+    const std::string commit = ape_escape_json_string(json, "commit");
+    std::string label = "Installed build: ";
+    label += channel.empty() ? "unknown channel" : channel;
+    if (!version.empty()) label += " v" + version;
+    if (!commit.empty() && commit != "unknown")
+        label += " | commit " + commit.substr(0, commit.size() < 12 ? commit.size() : 12);
+    return label;
+}
+
 static void ape_escape_draw_accessibility_settings(const LauncherTheme& th) {
     // APE_ESCAPE_ACCESSIBILITY_SETTINGS
     ImGui::Spacing();
@@ -511,6 +596,11 @@ static void ape_escape_draw_accessibility_settings(const LauncherTheme& th) {
         g_ape_escape_preferences.high_contrast = high_contrast;
         ape_escape_save_preferences();
     }
+    bool large_controls = g_ape_escape_preferences.large_controls;
+    if (ImGui::Checkbox("Larger controls and focus targets", &large_controls)) {
+        g_ape_escape_preferences.large_controls = large_controls;
+        ape_escape_save_preferences();
+    }
     bool reduce_motion = g_ape_escape_preferences.reduce_motion;
     if (ImGui::Checkbox("Reduce visual effects", &reduce_motion)) {
         g_ape_escape_preferences.reduce_motion = reduce_motion;
@@ -519,6 +609,7 @@ static void ape_escape_draw_accessibility_settings(const LauncherTheme& th) {
     if (ImGui::Button("Reset accessibility settings", ImVec2(px(230.0f), px(32.0f)))) {
         g_ape_escape_preferences.text_percent = 100;
         g_ape_escape_preferences.high_contrast = false;
+        g_ape_escape_preferences.large_controls = false;
         g_ape_escape_preferences.reduce_motion = false;
         ape_escape_save_preferences();
     }
@@ -540,7 +631,9 @@ QUICK_TOOLS = r'''
         ImGui::TextWrapped("Selected disc: %s", m->rom_full);
     else
         ImGui::TextDisabled("No disc selected yet.");
-    ImGui::TextWrapped("Open your data, save, and disc folders without digging through Finder or File Explorer.");
+    ImGui::TextWrapped("Open your data, save, and disc folders, or inspect your installed build.");
+    const std::string build_info = ape_escape_build_info();
+    ImGui::TextWrapped("%s", build_info.c_str());
     const float quick_gap = px(8.0f);
     float quick_button_w = (ImGui::GetContentRegionAvail().x - quick_gap) * 0.5f;
     if (quick_button_w < px(115.0f)) quick_button_w = px(115.0f);
@@ -548,11 +641,15 @@ QUICK_TOOLS = r'''
         ape_escape_open_folder(ape_escape_data_directory());
     ImGui::SameLine(0, quick_gap);
     if (ImGui::Button("Open Save Folder", ImVec2(quick_button_w, px(34.0f))))
-        ape_escape_open_folder(ape_escape_data_directory() / "saves");
+        ape_escape_open_folder(ape_escape_application_directory() / "saves");
     if (ImGui::Button("Open Disc Folder", ImVec2(quick_button_w, px(34.0f))))
         ape_escape_open_disc_folder(m);
     ImGui::SameLine(0, quick_gap);
-    if (ImGui::Button("Nightly Release Page", ImVec2(quick_button_w, px(34.0f))))
+    if (ImGui::Button("Copy Build Info", ImVec2(quick_button_w, px(34.0f)))) {
+        ImGui::SetClipboardText(build_info.c_str());
+        s_ape_escape_quick_status = "Build information copied to the clipboard.";
+    }
+    if (ImGui::Button("Nightly / Update History", ImVec2(quick_button_w, px(34.0f))))
         ape_escape_open_nightly_page();
     if (!s_ape_escape_quick_status.empty())
         ImGui::TextWrapped("%s", s_ape_escape_quick_status.c_str());
@@ -778,24 +875,41 @@ def main() -> int:
 
     # Make global theme/style changes affect the background, dashboard and all settings pages.
     call_anchor = "        LNG_ImplSDL_NewFrame();\n"
-    draw_anchor = "        if (launch_commit.job.pending()) draw_launch_commit_progress(*th);\n        else draw_ui(m, *th, p->logical_w, p->logical_h);\n"
+    draw_anchor_with_commit = (
+        "        if (launch_commit.job.pending()) draw_launch_commit_progress(*th);\n"
+        "        else draw_ui(m, *th, p->logical_w, p->logical_h);\n"
+    )
+    draw_anchor_direct = "        draw_ui(m, *th, p->logical_w, p->logical_h);\n"
+    clear_anchor = "        const LngColor bg = th->background;\n"
     if ACCESS_THEME_MARKER not in launcher_text:
         if args.check:
             return fail("Global accessibility theme application has not been applied.", 1)
-        if launcher_text.count(call_anchor) != 1 or launcher_text.count(draw_anchor) != 1:
-            return fail("Pinned launcher frame loop no longer matches the guarded accessibility theme anchors.")
+        if launcher_text.count(call_anchor) != 1:
+            return fail("Pinned launcher frame loop no longer matches the guarded accessibility frame anchor.")
+        if launcher_text.count(clear_anchor) != 1:
+            return fail("Pinned launcher frame loop no longer matches the guarded accessibility clear-color anchor.")
+        if launcher_text.count(draw_anchor_with_commit) == 1:
+            selected_draw_anchor = draw_anchor_with_commit
+            draw_replacement = (
+                "        if (launch_commit.job.pending()) draw_launch_commit_progress(*g_th);\n"
+                "        else draw_ui(m, *g_th, p->logical_w, p->logical_h);\n"
+            )
+        elif launcher_text.count(draw_anchor_direct) == 1:
+            selected_draw_anchor = draw_anchor_direct
+            draw_replacement = "        draw_ui(m, *g_th, p->logical_w, p->logical_h);\n"
+        else:
+            return fail("Pinned launcher frame loop no longer matches a supported guarded draw anchor.")
         launcher_text = launcher_text.replace(
             call_anchor,
             "        ape_escape_refresh_accessibility_theme(th); // " + ACCESS_THEME_MARKER + "\n" + call_anchor,
             1,
         )
+        launcher_text = launcher_text.replace(selected_draw_anchor, draw_replacement, 1)
         launcher_text = launcher_text.replace(
-            draw_anchor,
-            "        if (launch_commit.job.pending()) draw_launch_commit_progress(*g_th);\n"
-            "        else draw_ui(m, *g_th, p->logical_w, p->logical_h);\n",
-            1,
+            clear_anchor, "        const LngColor bg = g_th->background;\n", 1
         )
-    elif "draw_ui(m, *g_th, p->logical_w, p->logical_h)" not in launcher_text:
+    elif ("draw_ui(m, *g_th, p->logical_w, p->logical_h)" not in launcher_text or
+          "const LngColor bg = g_th->background;" not in launcher_text):
         return fail("Accessibility theme marker exists but the frame loop is not using the effective theme.")
 
     # Load preferences after ImGui exists, and point the shared background helpers at the same theme copy.
