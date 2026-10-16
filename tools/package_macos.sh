@@ -36,6 +36,7 @@ mkdir -p "$MACOS" "$FRAMEWORKS" "$RESOURCES"
 # the signed app bundle in ~/Library/Application Support.
 cp "$BIN" "$MACOS/ApeEscapeRecomp.bin"
 cp -R "$BUILD_DIR/assets" "$RESOURCES/assets"
+cp "$ROOT/recomp/launcher/monkepedia.tsv" "$RESOURCES/assets/monkepedia.tsv"
 cp -R "$BUILD_DIR/bios" "$RESOURCES/bios"
 cp "$ROOT/packaging/release/input.ini" "$RESOURCES/input.ini"
 

@@ -1,0 +1,211 @@
+# Ape Escape (North American release) Monkepedia index.
+# Columns: stage_id, stage_name, entry_index, displayed_name, alternate_regional_label.
+# Unknown labels remain explicit placeholders; personality prose and extracted profile art are omitted.
+# Source: https://apeescape.fandom.com/wiki/Monkepedia; validate names against SCUS-94423 before adding profile details.
+0	Fossil Field	1	Noonan	Blair
+0	Fossil Field	2	Jorjy	Cruise
+0	Fossil Field	3	Nati	Fruity
+0	Fossil Field	4	Unverified entry 04	
+1	Primordial Ooze	1	Shay	B.C.
+1	Primordial Ooze	2	Dr. Monk	Tum Tum
+1	Primordial Ooze	3	Ah-choo	Sleepy
+1	Primordial Ooze	4	Unverified entry 04	
+1	Primordial Ooze	5	Unverified entry 05	
+1	Primordial Ooze	6	Unverified entry 06	
+2	Molten Lava	1	Scotty	Chimpo
+2	Molten Lava	2	Coco	Farmer
+2	Molten Lava	3	Moggan	
+2	Molten Lava	4	J. Thomas	Twitcher
+2	Molten Lava	5	Mattie	
+2	Molten Lava	6	Barney	
+2	Molten Lava	7	Rocky	
+10	Thick Jungle	1	Marquez	Spy
+10	Thick Jungle	2	Livingston	Clumsy
+10	Thick Jungle	3	George	IBall
+10	Thick Jungle	4	Maki	Colt
+10	Thick Jungle	5	Unverified entry 05	
+10	Thick Jungle	6	Unverified entry 06	
+10	Thick Jungle	7	Unverified entry 07	
+10	Thick Jungle	8	Unverified entry 08	
+10	Thick Jungle	9	Unverified entry 09	
+10	Thick Jungle	10	Unverified entry 10	
+10	Thick Jungle	11	Unverified entry 11	
+10	Thick Jungle	12	Unverified entry 12	
+10	Thick Jungle	13	Unverified entry 13	
+10	Thick Jungle	14	Unverified entry 14	
+11	Dark Ruins	1	Kyle	Dustbin
+11	Dark Ruins	2	Stan	Indiana
+11	Dark Ruins	3	Kenny	Colt
+11	Dark Ruins	4	Papou	Mash
+11	Dark Ruins	5	Bernt	Zzap
+11	Dark Ruins	6	Trance	Dodo
+11	Dark Ruins	7	Unverified entry 07	
+11	Dark Ruins	8	Unverified entry 08	
+11	Dark Ruins	9	Unverified entry 09	
+11	Dark Ruins	10	Unverified entry 10	
+11	Dark Ruins	11	Unverified entry 11	
+11	Dark Ruins	12	Unverified entry 12	
+11	Dark Ruins	13	Unverified entry 13	
+12	Cryptic Relics	1	Bazzle	Miller
+12	Cryptic Relics	2	Freeto	Quiff
+12	Cryptic Relics	3	Troopa	Street
+12	Cryptic Relics	4	Stymie	Van Gogh
+12	Cryptic Relics	5	Unverified entry 05	
+12	Cryptic Relics	6	Unverified entry 06	
+12	Cryptic Relics	7	Unverified entry 07	
+12	Cryptic Relics	8	Unverified entry 08	
+20	Crabby Beach	1	Cool Blue	Jetlag
+20	Crabby Beach	2	Sandy	Shazza
+20	Crabby Beach	3	Shell E.	Spank
+20	Crabby Beach	4	Gidget	Fossil
+20	Crabby Beach	5	Puka	
+20	Crabby Beach	6	Moko	
+20	Crabby Beach	7	Unverified entry 07	
+20	Crabby Beach	8	Unverified entry 08	
+21	Coral Cave	1	Chip	Gossip
+21	Coral Cave	2	Oreo	Chum
+21	Coral Cave	3	Puddles	Sensei
+21	Coral Cave	4	Kalama	Mash
+21	Coral Cave	5	Unverified entry 05	
+21	Coral Cave	6	Unverified entry 06	
+21	Coral Cave	7	Unverified entry 07	
+21	Coral Cave	8	Unverified entry 08	
+22	Dexter's Island	1	Unverified entry 01	
+22	Dexter's Island	2	Unverified entry 02	
+22	Dexter's Island	3	Unverified entry 03	
+22	Dexter's Island	4	Unverified entry 04	
+22	Dexter's Island	5	Unverified entry 05	
+22	Dexter's Island	6	Unverified entry 06	
+22	Dexter's Island	7	Unverified entry 07	
+22	Dexter's Island	8	Unverified entry 08	
+22	Dexter's Island	9	Unverified entry 09	
+22	Dexter's Island	10	Unverified entry 10	
+22	Dexter's Island	11	Unverified entry 11	
+30	Snowy Mammoth	1	Popcicle	
+30	Snowy Mammoth	2	Iced	
+30	Snowy Mammoth	3	Rickets	
+30	Snowy Mammoth	4	Denggoy	
+30	Snowy Mammoth	5	Unverified entry 05	
+30	Snowy Mammoth	6	Unverified entry 06	
+31	Frosty Retreat	1	Storm	
+31	Frosty Retreat	2	Qube	
+31	Frosty Retreat	3	Ranix	
+31	Frosty Retreat	4	Sharpe	
+31	Frosty Retreat	5	Diamond	
+31	Frosty Retreat	6	Curtis	
+31	Frosty Retreat	7	Florian	
+31	Frosty Retreat	8	Columbobo	
+31	Frosty Retreat	9	Marr	
+32	Hot Springs	1	Punky	Bert
+32	Hot Springs	2	Ameego	Lens
+32	Hot Springs	3	Unverified entry 03	
+32	Hot Springs	4	Unverified entry 04	
+32	Hot Springs	5	Unverified entry 05	
+32	Hot Springs	6	Unverified entry 06	
+32	Hot Springs	7	Unverified entry 07	
+32	Hot Springs	8	Unverified entry 08	
+32	Hot Springs	9	Unverified entry 09	
+40	Sushi Temple	1	Taku	MC
+40	Sushi Temple	2	Rocka	Vinyl
+40	Sushi Temple	3	Unverified entry 03	
+40	Sushi Temple	4	Unverified entry 04	
+40	Sushi Temple	5	Unverified entry 05	
+40	Sushi Temple	6	Unverified entry 06	
+40	Sushi Temple	7	Unverified entry 07	
+40	Sushi Temple	8	Unverified entry 08	
+40	Sushi Temple	9	Unverified entry 09	
+40	Sushi Temple	10	Unverified entry 10	
+40	Sushi Temple	11	Unverified entry 11	
+40	Sushi Temple	12	Unverified entry 12	
+41	Wabi Sabi Wall	1	Minky	Meg
+41	Wabi Sabi Wall	2	Zobbro	PAL
+41	Wabi Sabi Wall	3	Unverified entry 03	
+41	Wabi Sabi Wall	4	Unverified entry 04	
+41	Wabi Sabi Wall	5	Unverified entry 05	
+41	Wabi Sabi Wall	6	Unverified entry 06	
+41	Wabi Sabi Wall	7	Unverified entry 07	
+41	Wabi Sabi Wall	8	Unverified entry 08	
+41	Wabi Sabi Wall	9	Unverified entry 09	
+41	Wabi Sabi Wall	10	Unverified entry 10	
+42	Crumbling Castle	1	Robart	CD
+42	Crumbling Castle	2	Igor	Ali
+42	Crumbling Castle	3	Naners	Mum
+42	Crumbling Castle	4	Unverified entry 04	
+42	Crumbling Castle	5	Unverified entry 05	
+42	Crumbling Castle	6	Unverified entry 06	
+42	Crumbling Castle	7	Unverified entry 07	
+42	Crumbling Castle	8	Unverified entry 08	
+42	Crumbling Castle	9	Unverified entry 09	
+42	Crumbling Castle	10	Unverified entry 10	
+42	Crumbling Castle	11	Unverified entry 11	
+42	Crumbling Castle	12	Unverified entry 12	
+42	Crumbling Castle	13	Unverified entry 13	
+42	Crumbling Castle	14	Unverified entry 14	
+42	Crumbling Castle	15	Unverified entry 15	
+42	Crumbling Castle	16	Unverified entry 16	
+42	Crumbling Castle	17	Unverified entry 17	
+42	Crumbling Castle	18	Unverified entry 18	
+42	Crumbling Castle	19	Unverified entry 19	
+42	Crumbling Castle	20	Unverified entry 20	
+50	City Park	1	Unverified entry 01	
+50	City Park	2	Unverified entry 02	
+50	City Park	3	Unverified entry 03	
+50	City Park	4	Unverified entry 04	
+50	City Park	5	Unverified entry 05	
+50	City Park	6	Unverified entry 06	
+50	City Park	7	Unverified entry 07	
+50	City Park	8	Unverified entry 08	
+50	City Park	9	Unverified entry 09	
+50	City Park	10	Unverified entry 10	
+50	City Park	11	Unverified entry 11	
+50	City Park	12	Unverified entry 12	
+50	City Park	13	Unverified entry 13	
+51	Specter's Factory	1	Big Show	Itchy
+51	Specter's Factory	2	Dreos	Yaffle
+51	Specter's Factory	3	Reznor	Chunky
+51	Specter's Factory	4	Hurt	Grudge
+51	Specter's Factory	5	Urkel	Plonker
+51	Specter's Factory	6	Vanilla S	Agent 4125
+51	Specter's Factory	7	Radd	Pertwee
+51	Specter's Factory	8	Shimbo	Quentin
+51	Specter's Factory	9	Unverified entry 09	
+51	Specter's Factory	10	Unverified entry 10	
+52	TV Tower	1	Unverified entry 01	
+52	TV Tower	2	Unverified entry 02	
+52	TV Tower	3	Unverified entry 03	
+52	TV Tower	4	Unverified entry 04	
+52	TV Tower	5	Unverified entry 05	
+52	TV Tower	6	Unverified entry 06	
+52	TV Tower	7	Unverified entry 07	
+52	TV Tower	8	Unverified entry 08	
+52	TV Tower	9	Unverified entry 09	
+52	TV Tower	10	Unverified entry 10	
+52	TV Tower	11	Unverified entry 11	
+52	TV Tower	12	Unverified entry 12	
+60	Monkey Madness	1	Goopo	Curtis
+60	Monkey Madness	2	Porto	Slime
+60	Monkey Madness	3	Slam	Junior
+60	Monkey Madness	4	Unverified entry 04	
+60	Monkey Madness	5	Unverified entry 05	
+60	Monkey Madness	6	Unverified entry 06	
+60	Monkey Madness	7	Unverified entry 07	
+60	Monkey Madness	8	Unverified entry 08	
+60	Monkey Madness	9	Unverified entry 09	
+60	Monkey Madness	10	Unverified entry 10	
+60	Monkey Madness	11	Unverified entry 11	
+60	Monkey Madness	12	Unverified entry 12	
+60	Monkey Madness	13	Unverified entry 13	
+60	Monkey Madness	14	Unverified entry 14	
+60	Monkey Madness	15	Unverified entry 15	
+60	Monkey Madness	16	Unverified entry 16	
+60	Monkey Madness	17	Unverified entry 17	
+60	Monkey Madness	18	Unverified entry 18	
+60	Monkey Madness	19	Unverified entry 19	
+60	Monkey Madness	20	Unverified entry 20	
+60	Monkey Madness	21	Unverified entry 21	
+60	Monkey Madness	22	Unverified entry 22	
+60	Monkey Madness	23	Unverified entry 23	
+60	Monkey Madness	24	Unverified entry 24	
+70	Stadium Attack	0		
+80	Gladiator Attack	0		
+90	Peak Point Matrix	0		

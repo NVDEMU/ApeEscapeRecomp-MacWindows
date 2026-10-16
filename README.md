@@ -73,6 +73,7 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 - **Gameplay Assist Pack** — separate Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets switches.
 - **Extended Draw Distance** — an experimental rendering tweak aimed at reducing certain distance pop-in paths.
 - **Quality-of-Life Tools** — Quick Retry, camera sensitivity, collectible counters, a monkey-progress panel and a level timer.
+- **Progress Journal** — optional local-only stage-exit history and captured-monkey observations. It never uploads data or modifies game state.
 - **Challenge Pack** — optional timed monkey hunts (3/5/10 minutes), no-damage runs, limited starting lives (1/3/5), and randomized challenges.
 - **Hardcore Challenges** — separate default-off toggles for **Monkey Mayhem**, an experimental rule intended to make monkeys act/alert more often, and **Nightmare Mode**, which automatically includes Monkey Mayhem alongside one-hit health, a three-life maximum (including extra lives), and a three-minute limit per stage. The monkey behavior mapping needs in-game validation.
 
@@ -90,7 +91,7 @@ Memory-card saves, save states and rewind are part of the project experience. Ke
 
 Open **Settings → Accessibility** to adjust launcher text size (80–150%), enable high-contrast colors, use larger controls and focus targets, or reduce background visual effects. These launcher-wide preferences save automatically in the operating system's per-user application-data folder, so replacing the macOS app bundle does not reset them. They do not enable or change gameplay mods.
 
-The dashboard's **Quick Tools** can open the app-data folder, save folder, or selected disc folder; show the installed channel, version, and commit; copy build information for a bug report; and open the Nightly release page for update history. The updater preserves player configuration, the selected disc and BIOS paths, keyboard/controller mappings, memory cards, and custom mod content when replacing the macOS app bundle.
+The dashboard's **Quick Tools** can open the app-data folder, save folder, or selected disc folder; show the installed channel, version, and commit; copy build information for a bug report; and open the Nightly release page for update history. **Roll Back Last Build** restores the package saved by an in-app update. The dedicated **Monkepedia** launcher tab contains the Monkey Book, Play History & Progress and Time Trials. Progress Journal is a separate default-off option under Mods. The updater preserves player configuration, the selected disc and BIOS paths, keyboard/controller mappings, memory cards, and custom mod content when replacing the macOS app bundle.
 
 ## Updates without hunting for downloads
 

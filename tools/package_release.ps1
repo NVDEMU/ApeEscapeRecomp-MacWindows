@@ -218,6 +218,7 @@ if (-not (Test-Path (Join-Path $AssetsSrc "img"))) {
     throw "recomp-ui launcher assets missing at $AssetsSrc -- was the recomp-ui launcher built (recomp-ui junction present)?"
 }
 Copy-Item -Recurse -Force $AssetsSrc (Join-Path $Stage "assets")
+Copy-Item (Join-Path $Root 'recomp/launcher/monkepedia.tsv') (Join-Path $Stage 'assets/monkepedia.tsv')
 $fontCount = (Get-ChildItem (Join-Path $Stage "assets/fonts") -Filter *.ttf -ErrorAction SilentlyContinue).Count
 $imgCount  = (Get-ChildItem (Join-Path $Stage "assets/img")   -Filter *.tga -ErrorAction SilentlyContinue).Count
 Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount image(s)"
