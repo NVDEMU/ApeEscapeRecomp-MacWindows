@@ -117,6 +117,7 @@ class NightlyUpdaterTests(unittest.TestCase):
             staging_parent = root / "update-staging"
             install_root.mkdir()
             staging_parent.mkdir()
+            (install_root / "ApeEscapeRecomp.exe").write_text("old runtime", encoding="utf-8")
 
             preserved = {
                 "disc.cfg": "/Users/player/Games/Ape Escape.cue",
@@ -141,7 +142,8 @@ class NightlyUpdaterTests(unittest.TestCase):
                 for relative in preserved:
                     archive.writestr(relative, "packaged default must not overwrite player data")
 
-            UPDATER.install_windows(archive_path, install_root, staging_parent)
+            with mock.patch.object(UPDATER, "rollback_archive_path", return_value=root / "rollback" / "previous-build.zip"):
+                UPDATER.install_windows(archive_path, install_root, staging_parent)
 
             self.assertEqual((install_root / "ApeEscapeRecomp.exe").read_text(encoding="utf-8"),
                              "new runtime")
