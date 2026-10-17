@@ -1,5 +1,3 @@
-#include <cstdio>
-#include <map>
 /* APE_ESCAPE_NEW_FEATURES_HELPER
  * Launcher-side features. Challenge data and profile data stay in the user's
  * data directory; no game RAM is modified by these tools.
@@ -345,18 +343,20 @@ static void ape_escape_draw_stage_guide(LauncherModel*, const LauncherTheme& th)
     }
 }
 
-static const char APE_ESCAPE_EXAMPLE_PLUGIN[] =
-    "#include \"mod_plugins.h\"\n"
-    "#include <stdint.h>\n\n"
-    "static void example_vblank(void) {\n"
-    "    if (!psx_mod_game_started()) return;\n"
-    "    /* Read-only example: inspect, log, and verify before writing game RAM. */\n"
-    "    const uint16_t stage_timer = psx_mod_read_half(0x800F4490u);\n"
-    "    (void)stage_timer;\n"
-    "}\n\n"
-    "PSX_MOD_CONSTRUCTOR(register_example_plugin) {\n"
-    "    (void)psx_mod_register_vblank_plugin(\"example.timer-observer\", example_vblank);\n"
-    "}\n";
+static const char APE_ESCAPE_EXAMPLE_PLUGIN[] = R"APE_PLUGIN(#include "mod_plugins.h"
+#include <stdint.h>
+
+/* Read-only starter. Verify address semantics against the current game build. */
+static void example_vblank(void) {
+    if (!psx_mod_game_started()) return;
+    const uint16_t observed_word = psx_mod_read_half(0x800F4490u);
+    (void)observed_word;
+}
+
+PSX_MOD_CONSTRUCTOR(register_example_plugin) {
+    (void)psx_mod_register_vblank_plugin("example.timer-observer", example_vblank);
+}
+)APE_PLUGIN";
 static void ape_escape_draw_mod_toolkit(LauncherModel*, const LauncherTheme& th) {
     ImGui::TextColored(col(th.accent2), "MOD DEVELOPER TOOLKIT");
     ImGui::TextWrapped("Start from the documented project API and a read-only observer. Undocumented memory writes can break game state or softlock stages.");
