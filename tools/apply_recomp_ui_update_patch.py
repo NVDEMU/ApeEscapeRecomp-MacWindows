@@ -213,7 +213,7 @@ INCLUDES = r'''#if defined(_WIN32)
   #include <sys/types.h>
   #include <unistd.h>
 #endif
-#include <cstdio>
+#include <cstdio> // APE_ESCAPE_EXTRA_STD_HEADERS
 #include <map>'''
 
 HELPER = r'''
@@ -977,6 +977,20 @@ def main() -> int:
         launcher_text = launcher_text.replace(END_ANCHOR, "\n" + BUTTON + END_ANCHOR, 1)
     elif 'ImGui::Button("Check for Nightly Updates"' not in launcher_text:
         return fail("Updater helper exists but launcher button is missing.", 3)
+
+    # The shared launcher's updater marker can already exist in a reused worktree.
+    # Ensure the new helper's standard headers are added even in that case.
+    extra_headers_marker = "APE_ESCAPE_EXTRA_STD_HEADERS"
+    if extra_headers_marker not in launcher_text:
+        if args.check:
+            return fail("The extra launcher helper standard headers have not been applied.", 1)
+        if launcher_text.count(INCLUDE_ANCHOR) != 1:
+            return fail("Pinned launcher no longer matches the guarded standard-header anchor.")
+        launcher_text = launcher_text.replace(
+            INCLUDE_ANCHOR,
+            INCLUDE_ANCHOR + "\n#include <cstdio> // " + extra_headers_marker + "\n#include <map>",
+            1,
+        )
 
     # Make the standard-library streams needed by the per-user preferences available.
     if PREFS_INCLUDE_MARKER not in launcher_text:
