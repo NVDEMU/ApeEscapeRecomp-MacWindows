@@ -1,0 +1,23 @@
+format_version = 5
+id = "ape.enhancement.sky-flyer-triple-jump"
+version = "1.0.0"
+name = "Ape Escape Sky Flyer Triple Jump"
+author = "nvd123"
+description = "Trigger the Sky Flyer with a third quick Jump press instead of rotating the right stick. Optional and disabled by default."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94423"
+disc_sha256 = "1ae17e78ebb8c782c7c1785b0a0bd7b0ee28235b8a0c83c8df887129899a852a"
+
+[[feature]]
+id = "sky-flyer-triple-jump"
+name = "Sky Flyer Triple Jump"
+description = "Equip and unlock the Sky Flyer, then press R1/R2 three times in quick succession. The third press starts an automatic right-stick rotation burst; holding Jump keeps it rotating. A moving right stick always takes priority."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "sky-flyer-triple-jump"
+id = "ape.gadgets.sky-flyer-triple-jump"
