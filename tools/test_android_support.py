@@ -37,7 +37,7 @@ def check_patch_is_idempotent() -> None:
             raise SystemExit("runtime main Android patch is not idempotent")
         if gl_renderer.read_text(encoding="utf-8") != first_gl:
             raise SystemExit("GPU GL renderer Android patch is not idempotent")
-        if "#if defined(__ANDROID__)\\n/* APE_ANDROID_SKIP_GL_TEX_READBACK:" not in first_gl:
+        if "#if defined(__ANDROID__)\n/* APE_ANDROID_SKIP_GL_TEX_READBACK:" not in first_gl:
             raise SystemExit("Android GLES must exclude unsupported glGetTexImage diagnostic code")
         if "add_library(${target} SHARED" not in first_cmake:
             raise SystemExit("Android runtime target is not a shared library")
@@ -46,7 +46,7 @@ def check_patch_is_idempotent() -> None:
         if "# APE_ANDROID_GLES_LINKAGE" not in first_cmake:
             raise SystemExit("Android GLES/EGL linkage branch is missing")
         if "target_link_libraries(${target} PRIVATE GLESv3 EGL)" not in first_cmake:
-            raise SystemExit("Android runtime must link GLESv2/EGL rather than desktop OpenGL")
+            raise SystemExit("Android runtime must link GLESv3/EGL rather than desktop OpenGL")
         if "set(SDL_SHARED ON CACHE BOOL" not in first_cmake:
             raise SystemExit("Android must build SDL3 as the shared library loaded by SDLActivity")
         if "SDL_GetAndroidInternalStoragePath" not in first_main:
