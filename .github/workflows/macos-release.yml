@@ -35,6 +35,12 @@ jobs:
         run: python3 tools/test_audiovisual_guardrails.py
       - name: Check Monkepedia catalogue and manual caught checklist
         run: python3 tools/test_monke_catalog.py
+      - name: Check launcher features and mod developer template
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/test_launcher_features.py
+          python3 tools/test_launcher_features.py
+          cc -std=c99 -Wall -Wextra -Werror -fsyntax-only -Ipsxrecomp-v4/runtime/include templates/mod-plugin/example_plugin.c
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh
       - name: Check Linux packaging shell syntax
