@@ -15,6 +15,11 @@ from tools.download_disc import CHD_MAGIC, MIN_CHD_BYTES, find_release_asset_id,
 
 
 class DownloadDiscTests(unittest.TestCase):
+    def test_private_release_defaults_match_published_asset(self):
+        self.assertEqual(download_disc.DEFAULT_ASSETS_REPO, "NVDEMU/apeescapeprivateassets")
+        self.assertEqual(download_disc.DEFAULT_ASSETS_TAG, "thing")
+        self.assertEqual(download_disc.DEFAULT_ASSET_FILENAME, "Ape.Escape.USA.chd")
+
     def test_valid_chd_header_and_minimum_size(self):
         with tempfile.TemporaryDirectory() as directory:
             image = Path(directory) / "valid.chd"
@@ -93,23 +98,23 @@ class DownloadDiscTests(unittest.TestCase):
         payload = {
             "assets": [
                 {"id": 17, "name": "notes.txt"},
-                {"id": 23, "name": "Ape Escape (USA).chd"},
-                {"id": 24, "name": "Ape Escape (USA).chd.sha256"},
+                {"id": 23, "name": "Ape.Escape.USA.chd"},
+                {"id": 24, "name": "Ape.Escape.USA.chd.sha256"},
             ]
         }
-        self.assertEqual(find_release_asset_id(payload, "Ape Escape (USA).chd"), 23)
+        self.assertEqual(find_release_asset_id(payload, "Ape.Escape.USA.chd"), 23)
 
     def test_github_release_missing_asset_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "found 0"):
-            find_release_asset_id({"assets": [{"id": 1, "name": "other.chd"}]}, "Ape Escape (USA).chd")
+            find_release_asset_id({"assets": [{"id": 1, "name": "other.chd"}]}, "Ape.Escape.USA.chd")
 
     def test_github_release_ambiguous_asset_is_rejected(self):
         payload = {"assets": [
-            {"id": 1, "name": "Ape Escape (USA).chd"},
-            {"id": 2, "name": "Ape Escape (USA).chd"},
+            {"id": 1, "name": "Ape.Escape.USA.chd"},
+            {"id": 2, "name": "Ape.Escape.USA.chd"},
         ]}
         with self.assertRaisesRegex(ValueError, "found 2"):
-            find_release_asset_id(payload, "Ape Escape (USA).chd")
+            find_release_asset_id(payload, "Ape.Escape.USA.chd")
 
 
 if __name__ == "__main__":
