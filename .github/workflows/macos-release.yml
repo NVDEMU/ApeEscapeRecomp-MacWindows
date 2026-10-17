@@ -96,6 +96,11 @@ jobs:
               raise SystemExit("Monkey Mayhem must enforce the cooldown independently and from Nightmare Mode")
           print("Challenge Pack: C syntax, four default-off features, and two default-off Hardcore Challenges features verified.")
           PY
+      - name: Check Sky Flyer Triple Jump
+        run: |
+          set -euo pipefail
+          cc -std=c99 -Wall -Wextra -Werror -fsyntax-only -Ipsxrecomp-v4/runtime/include src/mods/ape_sky_flyer_triple_jump_plugin.c
+          python3 tools/test_sky_flyer_triple_jump.py
       - name: Check Extended Draw Distance catalog and guarded sites
         run: python3 tools/check_draw_distance_defaults.py
       - name: Check draw-distance audit tool syntax
