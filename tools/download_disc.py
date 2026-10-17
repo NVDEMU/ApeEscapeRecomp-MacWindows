@@ -15,12 +15,15 @@ import sys
 import tempfile
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 DROPBOX_API_PATH = "/ApeEscapeWii-private-assets/Ape Escape (USA).chd"
 MIN_CHD_BYTES = 10 * 1024 * 1024
 CHD_MAGIC = b"MComprHD"
+DEFAULT_ASSETS_REPO = "NVDEMU/ApeEscapeRecomp-PrivateAssets"
+DEFAULT_ASSETS_TAG = "game-assets-v1"
+DEFAULT_ASSET_FILENAME = "Ape Escape (USA).chd"
 
 
 def validate_chd(path: Path) -> int:
@@ -45,6 +48,69 @@ def stream_response(request: Request, destination: Path) -> None:
                 break
             out.write(chunk)
 
+
+
+def find_release_asset_id(release_payload: dict, filename: str) -> int:
+    """Select exactly one asset by filename from a GitHub Release API response."""
+    assets = release_payload.get("assets", [])
+    if not isinstance(assets, list):
+        raise ValueError("GitHub Release response does not contain an assets list")
+    matches = [
+        asset for asset in assets
+        if isinstance(asset, dict) and asset.get("name") == filename
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"expected exactly one Release asset named {filename!r}; found {len(matches)}"
+        )
+    asset_id = matches[0].get("id")
+    if not isinstance(asset_id, int) or asset_id < 1:
+        raise ValueError("GitHub Release asset has no valid numeric ID")
+    return asset_id
+
+
+def download_github_release_asset(
+    candidate: Path,
+    token: str,
+    repo: str = DEFAULT_ASSETS_REPO,
+    tag: str = DEFAULT_ASSETS_TAG,
+    filename: str = DEFAULT_ASSET_FILENAME,
+) -> None:
+    """Fetch a private Release attachment using Contents: Read-only token access."""
+    owner_repo = repo.split("/")
+    if len(owner_repo) != 2 or not all(owner_repo):
+        raise ValueError("GAME_ASSETS_REPO must be in owner/repository format")
+    owner, name = owner_repo
+    tag_path = quote(tag, safe="")
+    print("::add-mask::" + token)
+
+    release_url = f"https://api.github.com/repos/{owner}/{name}/releases/tags/{tag_path}"
+    release_request = Request(
+        release_url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "ApeEscapeRecomp-CI/1.0",
+        },
+        method="GET",
+    )
+    with urlopen(release_request, timeout=45) as response:
+        release_payload = json.load(response)
+
+    asset_id = find_release_asset_id(release_payload, filename)
+    asset_url = f"https://api.github.com/repos/{owner}/{name}/releases/assets/{asset_id}"
+    asset_request = Request(
+        asset_url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/octet-stream",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "ApeEscapeRecomp-CI/1.0",
+        },
+        method="GET",
+    )
+    stream_response(asset_request, candidate)
 
 def exchange_dropbox_token(app_key: str, app_secret: str, refresh_token: str) -> str:
     body = urlencode({
@@ -228,12 +294,39 @@ def main() -> int:
         candidate = Path(tmp.name)
     candidate.unlink(missing_ok=True)
 
+    github_token = os.environ.get("GAME_ASSETS_TOKEN", "").strip()
+    github_repo = os.environ.get("GAME_ASSETS_REPO", DEFAULT_ASSETS_REPO).strip()
+    github_tag = os.environ.get("GAME_ASSETS_TAG", DEFAULT_ASSETS_TAG).strip()
+    github_filename = os.environ.get("GAME_ASSETS_FILENAME", DEFAULT_ASSET_FILENAME).strip()
     key = os.environ.get("DROPBOX_APP_KEY", "").strip()
     secret = os.environ.get("DROPBOX_APP_SECRET", "").strip()
     refresh = os.environ.get("DROPBOX_REFRESH_TOKEN", "").strip()
     shared_url = os.environ.get("DISC_URL", "").strip()
 
     try:
+        # The private GitHub Release is the primary source. If its token is set,
+        # do not silently fall back to Dropbox: a missing tag/asset or permission
+        # issue should fail early and clearly, rather than hit the exhausted link.
+        if github_token:
+            if try_source(
+                "private GitHub Release asset",
+                lambda path: download_github_release_asset(
+                    path, github_token, github_repo, github_tag, github_filename
+                ),
+                candidate,
+                destination,
+            ):
+                return 0
+            print(
+                "Configured private GitHub Release download failed; verify GAME_ASSETS_TOKEN "
+                "can read the private repository and that GAME_ASSETS_TAG and "
+                "GAME_ASSETS_FILENAME exactly match the uploaded Release asset.",
+                file=sys.stderr,
+            )
+            return 1
+
+        # Legacy Dropbox paths remain only as a fallback for jobs that do not yet
+        # have GAME_ASSETS_TOKEN configured.
         # Prefer Dropbox's content API for the configured shared link. This avoids
         # HTML preview pages and uses app-level OAuth, so no user refresh token is
         # required. The result is still checked for a real CHD before acceptance.
