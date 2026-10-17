@@ -16,7 +16,17 @@ button{border:0;border-radius:10px;padding:13px 20px;font-weight:800;background:
 .game-frame{overflow:hidden;border:1px solid #2e5c72;border-radius:16px;background:#000}canvas{display:block;width:100%;height:auto;min-height:280px;aspect-ratio:4/3;object-fit:contain;outline:none;background:#000}
 .frame-label{padding:9px 13px;background:#0a1c29;border-top:1px solid #25485a;color:#9bb4c4;font-size:.8rem}
 details{margin-top:14px}summary{cursor:pointer;color:#9dd8e8}pre{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.78rem;color:#b8c9d3;background:#06121b;border-radius:8px;padding:12px}
-footer{color:#8ca5b4;font-size:.8rem;margin-top:18px}@media(max-width:640px){.controls{grid-template-columns:1fr}button{width:100%}canvas{min-height:200px}main{padding-top:20px}}
+footer{color:#8ca5b4;font-size:.8rem;margin-top:18px}
+.keyboard-panel{margin:18px 0}.keyboard-heading{margin-bottom:16px}.keyboard-heading h2{font-size:1.45rem;margin:6px 0}.keyboard-heading p{color:#b8cbd7;line-height:1.5;margin:0}
+.keyboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.key-group{border:1px solid #25485a;border-radius:12px;background:#091d2a;padding:14px;min-width:0}
+.key-group h3{margin:0 0 10px;color:#6de2cb;font-size:1rem}
+.key-list{margin:0}.key-list>div{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #1c3948}
+.key-list>div:first-child{border-top:0}.key-list dt{color:#c4d3df;font-size:.9rem}.key-list dd{margin:0;text-align:right;max-width:60%}
+kbd{display:inline-block;min-width:26px;padding:3px 6px;text-align:center;border:1px solid #527083;border-bottom-width:3px;border-radius:6px;background:#112d3c;color:#f4fbff;font:600 .85rem ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+.key-note{color:#9bb4c4;font-size:.83rem;line-height:1.5;margin:14px 0 0}
+@media(max-width:800px){.keyboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.controls{grid-template-columns:1fr}button{width:100%}.keyboard-grid{grid-template-columns:1fr}canvas{min-height:200px}main{padding-top:20px}.key-list dt{font-size:.86rem}}
 </style>
 </head>
 <body><main>
@@ -38,6 +48,48 @@ footer{color:#8ca5b4;font-size:.8rem;margin-top:18px}@media(max-width:640px){.co
 <button id="launch" type="button" disabled>Launch game</button>
 </div>
 <div id="status" role="status" aria-live="polite">Choose both your CHD disc image and matching SCPH-1001 BIOS dump.</div>
+</section>
+<section class="panel keyboard-panel" aria-labelledby="keyboard-title">
+  <div class="keyboard-heading">
+    <div class="eyebrow">Controls</div>
+    <h2 id="keyboard-title">Default keyboard controls</h2>
+    <p>These are the built-in keys for this Ape Escape build. Click the game screen after launch to focus keyboard input.</p>
+  </div>
+  <div class="keyboard-grid">
+    <div class="key-group">
+      <h3>Movement</h3>
+      <dl class="key-list">
+        <div><dt>Left stick / Move</dt><dd><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></dd></div>
+        <div><dt>D-pad</dt><dd><kbd>T</kbd> Up · <kbd>F</kbd> Left · <kbd>G</kbd> Down · <kbd>H</kbd> Right</dd></div>
+        <div><dt>Right stick / Net</dt><dd><kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></dd></div>
+      </dl>
+    </div>
+    <div class="key-group">
+      <h3>Face buttons</h3>
+      <dl class="key-list">
+        <div><dt>Cross (✕)</dt><dd><kbd>X</kbd></dd></div>
+        <div><dt>Circle (○)</dt><dd><kbd>C</kbd></dd></div>
+        <div><dt>Square (□)</dt><dd><kbd>Z</kbd></dd></div>
+        <div><dt>Triangle (△)</dt><dd><kbd>V</kbd></dd></div>
+      </dl>
+    </div>
+    <div class="key-group">
+      <h3>Shoulders &amp; stick clicks</h3>
+      <dl class="key-list">
+        <div><dt>L1 / R1</dt><dd><kbd>Q</kbd> / <kbd>Space</kbd></dd></div>
+        <div><dt>L2 / R2</dt><dd><kbd>E</kbd> / <kbd>R</kbd></dd></div>
+        <div><dt>L3 / R3</dt><dd><kbd>Y</kbd> / <kbd>U</kbd></dd></div>
+      </dl>
+    </div>
+    <div class="key-group">
+      <h3>System</h3>
+      <dl class="key-list">
+        <div><dt>Start</dt><dd><kbd>Enter</kbd></dd></div>
+        <div><dt>Select</dt><dd><kbd>Left Shift</kbd></dd></div>
+      </dl>
+    </div>
+  </div>
+  <p class="key-note">A compatible gamepad may also work, depending on browser and device. These defaults can differ from an old saved key map.</p>
 </section>
 <section class="game-frame" aria-label="Game display"><canvas id="canvas" tabindex="0" width="640" height="480" aria-label="Ape Escape game screen"></canvas>
 <div class="frame-label">Click the game screen to focus it. SDL browser input and compatible gamepads depend on the browser/device.</div></section>

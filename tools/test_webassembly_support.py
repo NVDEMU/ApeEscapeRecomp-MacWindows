@@ -64,7 +64,7 @@ def check_shell_workflow():
     runtime_patch = (ROOT / "tools" / "apply_webassembly_runtime_patch.py").read_text(encoding="utf-8")
     if "@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin" in runtime_patch:
         raise SystemExit("The browser build must not embed the mismatched OpenBIOS image")
-    for token in ('accept=".chd,application/octet-stream"', 'accept=".bin,application/octet-stream"', 'for="biosFile"', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--config'", "/game.toml", "apeEscapeDiscBytes:discBytes", "apeEscapeBiosBytes:biosBytes", "selectedBios.size!==512*1024"):
+    for token in ('accept=".chd,application/octet-stream"', 'accept=".bin,application/octet-stream"', 'for="biosFile"', 'Default keyboard controls', 'Left stick / Move', '<kbd>W</kbd>', '<kbd>T</kbd> Up', '<kbd>F</kbd> Left', '<kbd>G</kbd> Down', '<kbd>H</kbd> Right', '<kbd>↑</kbd>', '<kbd>X</kbd>', '<kbd>C</kbd>', '<kbd>Z</kbd>', '<kbd>V</kbd>', '<kbd>Space</kbd>', '<kbd>Enter</kbd>', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--config'", "/game.toml", "apeEscapeDiscBytes:discBytes", "apeEscapeBiosBytes:biosBytes", "selectedBios.size!==512*1024"):
         if token not in page:
             raise SystemExit(f"Browser page missing {token!r}")
     for token in ("Module.preRun", "FS.writeFile", "apeEscapeDiscBytes", "/game/Ape Escape USA.chd", "apeEscapeBiosBytes", "/bios/SCPH1001.BIN", "512 * 1024"):
