@@ -10,7 +10,7 @@ The Gameplay Assist Pack contains separate toggles for Infinite Lives, Infinite 
 
 The Quality-of-Life Tools package adds experimental Quick Retry (fast respawn, not a full stage reload), D-pad camera sensitivity, collectible statistics, a caught-monkey progress tracker and an in-game level timer. See the package README for shortcuts and limitations.
 
-The optional **Sky Flyer Triple Jump** package maps a third quick R1/R2 press to an automatic right-stick rotation burst while the Sky Flyer is equipped. Holding Jump keeps rotation going; manual right-stick input takes priority. It is disabled by default and needs in-game validation.
+The optional **Sky Flyer Triple Jump** package maps a third quick Cross/X press to an automatic right-stick rotation burst while the Sky Flyer is equipped. Holding Jump keeps rotation going; manual right-stick input takes priority. It is disabled by default and needs in-game validation.
 
 The **Challenge Pack** adds timed monkey hunts, no-damage runs, limited starting lives and random rule selection. Each feature is independently opt-in and uses its own native plugin.
 
