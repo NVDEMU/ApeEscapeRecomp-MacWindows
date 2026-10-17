@@ -37,8 +37,8 @@ if plugins != expected_plugins:
     raise SystemExit(f"Unexpected Sky Flyer plugin mapping: {plugins!r}")
 for marker in (
     "ape.gadgets.sky-flyer-triple-jump",
-    "APE_JUMP_R1 = 0x08u",
-    "APE_JUMP_R2 = 0x02u",
+    "APE_JUMP_CROSS = 0x40u",
+    "APE_JUMP_MASK = APE_JUMP_CROSS",
     "APE_SKY_FLYER_GADGET = 5u",
     "APE_JUMP_COMBO_TIMEOUT_FRAMES = 60u",
     "APE_MINIMUM_ROTATION_FRAMES = 24u",
