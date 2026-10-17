@@ -1142,7 +1142,7 @@ def main() -> int:
             body_anchor + "\n        case LNG_VIEW_MONKEPEDIA: /* " + body_marker + " */ ape_escape_draw_monke_pedia(m, th); break;"
                 + "\n        case LNG_VIEW_DAILY_CHALLENGE: /* APE_ESCAPE_EXTRA_LAUNCHER_BODY */ ape_escape_draw_daily_challenge(m, th); break;"
                 + "\n        case LNG_VIEW_STAGE_GUIDE: ape_escape_draw_stage_guide(m, th); break;"
-                + "\n        case LNG_VIEW_MOD_TOOLKIT: ape_escape_draw_mod_toolkit(m, th); break",
+                + "\n        case LNG_VIEW_MOD_TOOLKIT: ape_escape_draw_mod_toolkit(m, th); break;",
             1)
 
     if "APE_ESCAPE_EXTRA_LAUNCHER_BODY" not in launcher_text:
