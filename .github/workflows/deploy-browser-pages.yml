@@ -26,7 +26,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Configure Pages for workflow deployments
         uses: actions/github-script@v7
@@ -38,7 +38,11 @@ jobs:
               const { data: pages } = await github.rest.repos.getPages({ owner, repo });
               core.info('Current Pages build type: ' + pages.build_type);
               if (pages.build_type !== 'workflow') {
-                await github.rest.repos.updatePages({ owner, repo, build_type: 'workflow' });
+                await github.request('PUT /repos/{owner}/{repo}/pages', {
+                  owner,
+                  repo,
+                  build_type: 'workflow'
+                });
                 core.info('Switched Pages to GitHub Actions deployments.');
               }
             } catch (error) {
@@ -51,9 +55,9 @@ jobs:
         with:
           name: ApeEscapeRecomp-WebAssembly-Experimental
           path: web-dist
-          repository: \${{ github.repository }}
-          run-id: \${{ inputs.source_run_id || '39071617864' }}
-          github-token: \${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id || '39071617864' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify browser files and exclude game images
         shell: bash
