@@ -121,13 +121,26 @@ jobs:
             echo "::error::GAME_ASSETS_TOKEN is missing. Add a fine-grained token with Contents: Read-only access to NVDEMU/ApeEscapeRecomp-PrivateAssets."
             exit 1
           fi
-          release_json="$RUNNER_TEMP/private-assets-release.json"
-          curl --fail --silent --show-error --retry 2 --retry-delay 2 \
+          repo_json="$RUNNER_TEMP/private-assets-repo.json"
+          repo_status="$(curl --silent --show-error --output "$repo_json" --write-out '%{http_code}' \
             -H "Authorization: Bearer $GAME_ASSETS_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/$GAME_ASSETS_REPO/releases/tags/$GAME_ASSETS_TAG" \
-            --output "$release_json"
+            "https://api.github.com/repos/$GAME_ASSETS_REPO")"
+          if [ "$repo_status" != "200" ]; then
+            echo "::error::Private assets repository returned HTTP $repo_status. Confirm GAME_ASSETS_REPO is exact and GAME_ASSETS_TOKEN is authorized for that repository with Contents: Read-only."
+            exit 1
+          fi
+          release_json="$RUNNER_TEMP/private-assets-release.json"
+          release_status="$(curl --silent --show-error --output "$release_json" --write-out '%{http_code}' \
+            -H "Authorization: Bearer $GAME_ASSETS_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GAME_ASSETS_REPO/releases/tags/$GAME_ASSETS_TAG")"
+          if [ "$release_status" != "200" ]; then
+            echo "::error::Private repository access worked, but release tag '$GAME_ASSETS_TAG' returned HTTP $release_status. Confirm the release is published and the tag matches exactly."
+            exit 1
+          fi
           python3 - "$release_json" "$GAME_ASSETS_FILENAME" <<'PY'
           import json
           import sys
