@@ -39,6 +39,24 @@ if(ANDROID)
     endif()
 endif()
 
+
+# Experimental WebAssembly requires browser-specific fibers, graphics and filesystem support.
+# This mutates the checked-out submodule only during Emscripten configure; desktop builds are unchanged.
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".js" CACHE INTERNAL "Emscripten JavaScript loader output" FORCE)
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/apply_webassembly_runtime_patch.py"
+                --framework-root "${PSXRECOMP_ROOT}"
+                --project-root "${CMAKE_CURRENT_SOURCE_DIR}"
+                --build-root "${CMAKE_BINARY_DIR}"
+        RESULT_VARIABLE APE_WEBASSEMBLY_PATCH_RESULT
+    )
+    if(NOT APE_WEBASSEMBLY_PATCH_RESULT EQUAL 0)
+        message(FATAL_ERROR "Could not apply the experimental WebAssembly runtime patch.")
+    endif()
+endif()
+
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
 # Current psxrecomp emits the large game translation unit as numbered shards
@@ -81,11 +99,10 @@ psxrecomp_add_runtime_target(psx-runtime
     EXTRAS_SOURCES ${APE_MOD_PLUGIN_SOURCES}
     DEBUG_PORT 4480
     WINDOW_TITLE "ApeEscapeRecomp"
-    # No DEFAULT_BIOS_PATH: an absolute build-machine path must never be baked
-    # into a release exe (runtime.cmake refuses it and warns). Omitting it takes
-    # the framework default "bios/SCPH1001.BIN", which the runtime resolves
-    # relative to the exe — and which now also accepts the region-qualified
-    # "US-PSX-SCPH1001.BIN" spelling (recompiler/include/bios_rom_alias.h).
+    # No DEFAULT_BIOS_PATH: never bake an absolute build-machine path into a release.
+    # The framework bundles OpenBIOS as its default and supports a player-selected
+    # retail SCPH-1001 BIOS. The browser launcher explicitly passes its session-local
+    # BIOS path with --bios; desktop users can choose the retail image in settings.
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"

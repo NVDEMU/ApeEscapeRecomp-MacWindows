@@ -1,0 +1,8 @@
+exclude:
+  - psxrecomp-v4
+  - recomp-ui
+  - generated
+  - build
+  - web-dist
+  - android
+  - node_modules

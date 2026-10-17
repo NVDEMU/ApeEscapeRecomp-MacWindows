@@ -1,0 +1,206 @@
+name: Experimental WebAssembly feasibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, experimental-webassembly]
+    paths:
+      - '.github/workflows/webassembly.yml'
+      - 'docs/WEBASSEMBLY.md'
+      - 'CMakeLists.txt'
+      - 'game.toml'
+      - 'tools/**'
+      - 'web/**'
+      - 'psxrecomp-v4'
+      - 'recomp-ui'
+      - 'generated/**'
+      - 'src/**'
+      - 'mods/preloaded/**'
+
+permissions:
+  contents: read
+
+# Give each run its own concurrency key so a genuinely wedged runner cannot
+# block a newer diagnostic build. The compile command itself has a hard timeout.
+concurrency:
+  group: webassembly-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  emscripten-feasibility:
+    name: Emscripten configure and compile probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      bundle_ready: ${{ steps.wasm_build.outputs.bundle_ready }}
+    steps:
+      - name: Check out source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check browser-port patches and launcher shell
+        run: python tools/test_webassembly_support.py
+
+      - name: Install disc tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mame-tools ninja-build
+          command -v chdman
+
+      - name: Install Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.10
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Verify Emscripten toolchain
+        run: |
+          set -euo pipefail
+          emcc --version
+          command -v emcmake
+          cat > "$RUNNER_TEMP/emscripten-smoke.c" <<'EOF'
+          #include <stdio.h>
+          int main(void) { puts("Emscripten toolchain OK"); return 0; }
+          EOF
+          emcc "$RUNNER_TEMP/emscripten-smoke.c" -O2 -o "$RUNNER_TEMP/emscripten-smoke.html"
+          test -s "$RUNNER_TEMP/emscripten-smoke.wasm"
+          test -s "$RUNNER_TEMP/emscripten-smoke.js"
+
+      - name: Build native recompiler and OpenBIOS generator
+        run: |
+          set -euo pipefail
+          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build psxrecomp-v4/recompiler/build --parallel 2 --target psxrecomp-game psxrecomp-bios
+          (cd psxrecomp-v4 && bash tools/regen_bios.sh --config bios/OpenBIOS.toml)
+
+      - name: Download private build-time game image
+        env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
+        run: |
+          set -euo pipefail
+          python3 tools/download_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).chd"
+
+      - name: Prepare disc inputs and generate translation
+        run: |
+          set -euo pipefail
+          chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
+          chdman extractcd -i "$RUNNER_TEMP/Ape Escape (USA).chd" -o "$RUNNER_TEMP/Ape Escape (USA).cue" -ob "$RUNNER_TEMP/Ape Escape (USA).bin"
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).cue" --config game.toml
+          test -s apeescape/SCUS_944.23
+          if [ ! -s generated/SCUS_944.23_dispatch.c ]; then
+            psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
+          fi
+          test -s generated/SCUS_944.23_dispatch.c
+
+      - name: Attempt Emscripten CMake build and capture blockers
+        id: wasm_build
+        shell: bash
+        run: |
+          set +e
+          BUILD_DIR="$RUNNER_TEMP/wasm-probe/build"
+          rm -rf web-dist
+          mkdir -p "$BUILD_DIR"
+          {
+            echo '$ emcmake cmake -S . -B BUILD_DIR -G Ninja -DCMAKE_BUILD_TYPE=Release'
+            emcmake cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXECUTABLE_SUFFIX=.js -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF -DPSX_NETPLAY=OFF -DBUILD_TESTING=OFF
+            configure_status=$?
+            echo "CMAKE_CONFIGURE_EXIT=$configure_status"
+            if [ "$configure_status" -eq 0 ]; then
+              echo '$ cmake --build BUILD_DIR --parallel 2'
+              timeout --signal=INT --kill-after=30s 30m cmake --build "$BUILD_DIR" --parallel 2
+              build_status=$?
+              if [ "$build_status" -eq 124 ] || [ "$build_status" -eq 137 ]; then
+                echo "CMAKE_BUILD_TIMEOUT=30m"
+              fi
+              echo "CMAKE_BUILD_EXIT=$build_status"
+            else
+              echo "CMAKE_BUILD_SKIPPED=configure failed"
+            fi
+          } 2>&1 | tee "$RUNNER_TEMP/wasm-probe/emscripten-build.log"
+          cp "$RUNNER_TEMP/wasm-probe/emscripten-build.log" webassembly-build.log
+          if [ -s "$BUILD_DIR/ApeEscapeRecomp.js" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.wasm" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.data" ]; then
+            mkdir -p web-dist
+            cp web/index.html "$BUILD_DIR/index.html"
+            cp "$BUILD_DIR/ApeEscapeRecomp.js" "$BUILD_DIR/ApeEscapeRecomp.wasm" "$BUILD_DIR/ApeEscapeRecomp.data" "$BUILD_DIR/index.html" web-dist/
+            for file in index.html ApeEscapeRecomp.js ApeEscapeRecomp.wasm ApeEscapeRecomp.data; do
+              test -s "web-dist/$file"
+            done
+            echo "BROWSER_BUNDLE_READY=1"
+            echo "bundle_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "BROWSER_BUNDLE_READY=0 (no complete JS/WASM/data bundle was produced)"
+            echo "bundle_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Captured configure/build result; failures are logged so diagnostics can still be uploaded."
+
+      - name: Upload experimental browser bundle
+        if: always() && hashFiles('web-dist/index.html', 'web-dist/ApeEscapeRecomp.js', 'web-dist/ApeEscapeRecomp.wasm', 'web-dist/ApeEscapeRecomp.data') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-Experimental
+          path: web-dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Emscripten feasibility log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-feasibility-log
+          path: webassembly-build.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  deploy-browser-pages:
+    name: Publish experimental browser build to GitHub Pages
+    needs: emscripten-feasibility
+    if: needs.emscripten-feasibility.outputs.bundle_ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download browser bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-Experimental
+          path: web-dist
+
+      - name: Verify Pages payload and exclude game images
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html ApeEscapeRecomp.js ApeEscapeRecomp.wasm ApeEscapeRecomp.data; do
+            test -s "web-dist/$file"
+          done
+          if find web-dist -type f \( -iname '*.chd' -o -iname '*.cue' -o -iname '*.bin' -o -iname '*.iso' \) -print -quit | grep -q .; then
+            echo "::error::Disc image files must never be published to GitHub Pages."
+            exit 1
+          fi
+          count="$(find web-dist -maxdepth 1 -type f | wc -l)"
+          test "$count" -eq 4
+          echo "Verified four public browser files; no game image included."
+          find web-dist -maxdepth 1 -type f -print | sort
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web-dist
+
+      - name: Deploy browser build
+        id: deployment
+        uses: actions/deploy-pages@v4
