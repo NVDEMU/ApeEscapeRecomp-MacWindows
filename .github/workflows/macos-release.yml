@@ -112,13 +112,13 @@ jobs:
         shell: bash
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
-          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
           GAME_ASSETS_TAG: game-assets-v1
           GAME_ASSETS_FILENAME: Ape Escape (USA).chd
         run: |
           set -euo pipefail
           if [ -z "$GAME_ASSETS_TOKEN" ]; then
-            echo "::error::GAME_ASSETS_TOKEN is missing. Add a fine-grained token with Contents: Read-only access to NVDEMU/ApeEscapeRecomp-PrivateAssets."
+            echo "::error::GAME_ASSETS_TOKEN is missing. Add a fine-grained token with Contents: Read-only access to NVDEMU/apeescapeprivateassets."
             exit 1
           fi
           repo_json="$RUNNER_TEMP/private-assets-repo.json"
@@ -215,7 +215,7 @@ jobs:
         id: disc
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
-          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
           GAME_ASSETS_TAG: game-assets-v1
           GAME_ASSETS_FILENAME: Ape Escape (USA).chd
         run: |
@@ -366,7 +366,7 @@ jobs:
         shell: powershell
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
-          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
           GAME_ASSETS_TAG: game-assets-v1
           GAME_ASSETS_FILENAME: Ape Escape (USA).chd
         run: |
@@ -494,7 +494,7 @@ jobs:
         id: disc
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
-          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
           GAME_ASSETS_TAG: game-assets-v1
           GAME_ASSETS_FILENAME: Ape Escape (USA).chd
         run: |
