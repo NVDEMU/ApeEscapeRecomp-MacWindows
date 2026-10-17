@@ -62,6 +62,13 @@ Fresh installs and **Reset to Defaults** use this layout. An earlier unmodified 
 
 The launcher keeps the usual configuration controls alongside this project's optional features. Video, audio, system, hotkey, controller, save and mod pages remain available; the custom branding does not hide the original launcher options.
 
+### New launcher tools
+
+- **Save Protection Center** — manually create timestamped backups of user-writable application data and the install-local `saves/` folder when present. Restore asks for confirmation, creates a safety snapshot first, and merges matching files without deleting newer files.
+- **Daily Challenge** — reproducible date-based challenge codes with two rules selected from the existing timed-hunt, no-damage, and limited-lives challenges. Challenge Pack mods must be enabled manually; completion history is local and self-reported, not automatically verified.
+- **Stage Knowledge Cards** — stage roster counts and source links from the existing North-American Monkepedia catalogue, plus general gameplay tips. These are not live tracking or route-verified walkthroughs.
+- **Mod Developer Toolkit** — a launcher page with a copyable read-only native plugin template and a link to the [developer guide](docs/MOD_DEVELOPER_TOOLKIT.md). CI checks the example plugin and launcher integration.
+
 ### Optional mods
 
 Every mod feature starts **off**. Enabling one item does not turn on the others. The bundled catalog currently includes:
