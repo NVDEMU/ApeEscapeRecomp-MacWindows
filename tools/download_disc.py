@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 DROPBOX_API_PATH = "/ApeEscapeWii-private-assets/Ape Escape (USA).chd"
 MIN_CHD_BYTES = 10 * 1024 * 1024
 CHD_MAGIC = b"MComprHD"
-DEFAULT_ASSETS_REPO = "NVDEMU/ApeEscapeRecomp-PrivateAssets"
+DEFAULT_ASSETS_REPO = "NVDEMU/apeescapeprivateassets"
 DEFAULT_ASSETS_TAG = "game-assets-v1"
 DEFAULT_ASSET_FILENAME = "Ape Escape (USA).chd"
 
@@ -294,10 +294,6 @@ def main() -> int:
         candidate = Path(tmp.name)
     candidate.unlink(missing_ok=True)
 
-    github_token = os.environ.get("GAME_ASSETS_TOKEN", "").strip()
-    github_repo = os.environ.get("GAME_ASSETS_REPO", DEFAULT_ASSETS_REPO).strip()
-    github_tag = os.environ.get("GAME_ASSETS_TAG", DEFAULT_ASSETS_TAG).strip()
-    github_filename = os.environ.get("GAME_ASSETS_FILENAME", DEFAULT_ASSET_FILENAME).strip()
     github_token = os.environ.get("GAME_ASSETS_TOKEN", "").strip()
     github_repo = os.environ.get("GAME_ASSETS_REPO", DEFAULT_ASSETS_REPO).strip()
     github_tag = os.environ.get("GAME_ASSETS_TAG", DEFAULT_ASSETS_TAG).strip()
