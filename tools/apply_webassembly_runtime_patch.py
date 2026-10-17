@@ -263,6 +263,10 @@ def stage_browser_assets(project_root: Path, build_root: Path) -> None:
         if content.count(old) != 1:
             raise ValueError(f"Expected exactly one browser config setting {old!r}, found {content.count(old)}")
         content = content.replace(old, new, 1)
+    disc_setting = 'disc = "apeescape/Ape Escape (USA).cue"'
+    if content.count(disc_setting) != 1:
+        raise ValueError("Expected one original game disc setting to redirect into the browser-provided CHD")
+    content = content.replace(disc_setting, 'disc = "game/Ape Escape USA.chd"', 1)
     out = build_root / "web-assets" / "game.toml"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")

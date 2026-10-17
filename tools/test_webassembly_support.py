@@ -31,7 +31,7 @@ def check_runtime_patch():
         (project / "web").mkdir(parents=True)
         (project / "web" / "index.html").write_text("<html></html>", encoding="utf-8")
         (project / "web" / "wasm-pre.js").write_text("// pre-js\n", encoding="utf-8")
-        (project / "game.toml").write_text('[runtime]\noverlay_cache = true\n[video]\nrenderer = "opengl"\ninternal_resolution = "4k"\nantialiasing = true\n', encoding="utf-8")
+        (project / "game.toml").write_text('[game]\ndisc = "apeescape/Ape Escape (USA).cue"\n[runtime]\noverlay_cache = true\n[video]\nrenderer = "opengl"\ninternal_resolution = "4k"\nantialiasing = true\n', encoding="utf-8")
         build = base / "build"
         PATCH.apply(framework, project, build)
         first = (cmake.read_text(), fiber.read_text(), gl.read_text(), main.read_text())
@@ -53,7 +53,7 @@ def check_runtime_patch():
         if "#include <emscripten.h>" not in first[3] or "APE_WEBASSEMBLY_EVENT_LOOP_YIELD" not in first[3] or "emscripten_sleep(0)" not in first[3]:
             raise SystemExit("Emscripten browser runtime must yield to the event loop once per guest VBlank")
         staged = (build / "web-assets" / "game.toml").read_text(encoding="utf-8")
-        for token in ('overlay_cache = true', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false'):
+        for token in ('overlay_cache = true', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false', 'disc = "game/Ape Escape USA.chd"'):
             if token not in staged:
                 raise SystemExit(f"Browser config missing {token!r}")
 
