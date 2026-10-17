@@ -60,9 +60,19 @@ def check_project_scaffolding() -> None:
     if '"--game"' not in activity or '"--disc"' not in activity:
         raise SystemExit("Android game launch does not supply config and disc paths")
     workflow = (ROOT / ".github" / "workflows" / "android.yml").read_text(encoding="utf-8")
-    for token in ("setup-android", "assembleDebug", "upload-artifact", "app-debug.apk"):
+    for token in (
+        "setup-android", "assembleDebug", "upload-artifact", "app-debug.apk",
+        "download_disc.py", "chdman extractcd", "prepare_disc.py",
+        "psxrecomp-game --config game.toml",
+        "GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets",
+        "GAME_ASSETS_FILENAME: Ape.Escape.USA.chd",
+    ):
         if token not in workflow:
             raise SystemExit(f"Android workflow missing expected step: {token}")
+    gradle = (ROOT / "android" / "app" / "build.gradle").read_text(encoding="utf-8")
+    for token in ("psxrecomp-v4/bios/openbios.bin", "psxrecomp-v4/bios/OpenBIOS.LICENSE"):
+        if token not in gradle:
+            raise SystemExit(f"Android APK is missing bundled BIOS staging: {token}")
 
 if __name__ == "__main__":
     check_patch_is_idempotent()

@@ -80,6 +80,21 @@ tasks.register('stageApeEscapeAssets') {
             from new File(repoRoot, 'mods/preloaded')
             into new File(outputRoot, 'mods/preloaded')
         }
+        // The runtime validates the bundled, open-source BIOS image at startup.
+        // It is source/runtime data, not the commercial Ape Escape game image.
+        File biosImage = new File(repoRoot, 'psxrecomp-v4/bios/openbios.bin')
+        File biosLicense = new File(repoRoot, 'psxrecomp-v4/bios/OpenBIOS.LICENSE')
+        if (!biosImage.isFile() || !biosLicense.isFile()) {
+            throw new GradleException('Bundled OpenBIOS image or license is missing')
+        }
+        copy {
+            from biosImage
+            into new File(outputRoot, 'bios')
+        }
+        copy {
+            from biosLicense
+            into new File(outputRoot, 'bios')
+        }
         // Keep desktop defaults untouched: Android starts at native resolution
         // with the reliable software path until phone GPU behavior is verified.
         File config = new File(outputRoot, 'game.toml')

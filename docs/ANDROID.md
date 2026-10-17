@@ -9,7 +9,8 @@ Ape Escape Recompiled - Enhanced Edition has an **experimental Android ARM64 APK
 - Uses the existing SDL game-controller input path; a paired Bluetooth or USB controller is recommended because Ape Escape depends on both analog sticks.
 - Uses conservative software rendering at native PS1 resolution while platform graphics support is validated.
 - Uses app-private writable storage for configuration and saves.
-- No commercial game image or retail BIOS is distributed by this target.
+- Bundles the project's redistributable OpenBIOS image and its license notice.
+- The GitHub Actions build retrieves the commercial game image privately for code generation only; the CHD is kept in temporary runner storage and is not included in the APK.
 
 ## Build locally
 

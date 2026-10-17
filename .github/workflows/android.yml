@@ -65,11 +65,15 @@ jobs:
 
       - name: Install Android build packages
         run: |
+          set -euo pipefail
           sdkmanager --install \
             'platforms;android-35' \
             'build-tools;35.0.0' \
             'ndk;28.2.13676358' \
             'cmake;3.22.1'
+          sudo apt-get update
+          sudo apt-get install -y mame-tools
+          command -v chdman
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -86,6 +90,41 @@ jobs:
             cd psxrecomp-v4
             bash tools/regen_bios.sh --config bios/OpenBIOS.toml
           )
+
+      - name: Download private build-time game image
+        env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
+        run: |
+          set -euo pipefail
+          DEST="$RUNNER_TEMP/Ape Escape (USA).chd"
+          python3 tools/download_disc.py "$DEST"
+          test -s "$DEST"
+          echo "The validated CHD remains in runner temp storage and is never packaged into the APK."
+
+      - name: Prepare disc inputs for game code generation
+        run: |
+          set -euo pipefail
+          chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
+          chdman extractcd \
+            -i "$RUNNER_TEMP/Ape Escape (USA).chd" \
+            -o "$RUNNER_TEMP/Ape Escape (USA).cue" \
+            -ob "$RUNNER_TEMP/Ape Escape (USA).bin"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).cue"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).bin"
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).cue" --config game.toml
+          test -s apeescape/SCUS_944.23
+
+      - name: Generate or verify game translation
+        run: |
+          set -euo pipefail
+          if [ ! -s generated/SCUS_944.23_dispatch.c ]; then
+            psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
+          else
+            echo "Using checked-in/cached game translation."
+          fi
           test -s generated/SCUS_944.23_dispatch.c
 
       - name: Assemble debug APK
