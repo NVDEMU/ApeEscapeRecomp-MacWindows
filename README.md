@@ -71,7 +71,7 @@ Every mod feature starts **off**. Enabling one item does not turn on the others.
 - **PGXP Precision** — optional geometry precision and texture handling.
 - **Skip FMVs** — skip full-motion videos through the game's normal completion path.
 - **Quick Gadget Select** — a compact gadget-selection row.
-- **Sky Flyer Triple Jump** — optional third quick R1/R2 press to trigger the Sky Flyer, using the game's existing gadget logic; hold Jump to keep rotating. Manual right-stick movement takes priority.
+- **Sky Flyer Triple Jump** — optional third quick Cross/X press to trigger the Sky Flyer, using the game's existing gadget logic; hold Jump to keep rotating. Manual right-stick movement takes priority.
 - **Gameplay Assist Pack** — separate Infinite Lives, Infinite Health, Infinite Air and Unlock All Gadgets switches.
 - **Extended Draw Distance** — an experimental rendering tweak aimed at reducing certain distance pop-in paths.
 - **Quality-of-Life Tools** — Quick Retry, camera sensitivity, collectible counters, a monkey-progress panel and a level timer.
