@@ -26,12 +26,15 @@ if "EXTRA_HELPERS_PATH = Path(\"tools/launcher_extra_views.inc\")" not in patch:
     raise SystemExit("launcher patch does not load the project-owned feature source")
 if "ape_escape_draw_save_protection_center(th, quick_button_w, quick_gap);" not in patch:
     raise SystemExit("Save Protection Center is not connected to Quick Tools")
+if patch.count("const auto safety_snapshot = ape_escape_create_save_backup();") != 2:
+    raise SystemExit("updater and rollback must each create a safety snapshot before launch")
 
 for token in (
     "ape_escape_create_save_backup",
     "ape_escape_restore_save_backup",
     "BACKUP_INFO.txt",
     "ape_escape_latest_save_backup",
+    "ape_escape_prune_save_backups",
     "Create Safety Backup and Restore",
     "APE_ESCAPE_NEW_FEATURES_HELPER",
 ):
@@ -42,6 +45,8 @@ if restore.index("ape_escape_create_save_backup()") > restore.index("ape_escape_
     raise SystemExit("restore must create a pre-restore safety backup before copying snapshot files")
 if "skip_save_protection" not in helper:
     raise SystemExit("backup creation does not exclude its own backup directory")
+if "backups.size() <= 20u" not in helper:
+    raise SystemExit("backup history has no retention limit")
 if "does not delete files" not in helper:
     raise SystemExit("save restore safety behavior is not described")
 

@@ -35,7 +35,7 @@ Every distributable package belongs under `mods/preloaded/packages/<package-id>/
 
 ## Save Protection Center
 
-The launcher dashboard provides **Create Backup Now** and **Restore Latest Backup**. Backup snapshots contain user-writable application data and the install-local `saves/` directory when present. The restore confirmation first creates a safety snapshot, then merges files from the chosen backup. It does not delete files that were added after the backup, and matching files may be overwritten. Keep external copies of important memory-card files as well.
+The launcher dashboard provides **Create Backup Now** and **Restore Latest Backup**. It also creates a safety snapshot before launching the in-app updater or rollback helper; if a snapshot cannot be made, that operation is not started. Backup snapshots contain user-writable application data and the install-local `saves/` directory when present. Restore creates another safety snapshot, then merges files from the latest backup. It does not delete files that were added after the backup, and matching files may be overwritten. The rolling store keeps up to 20 snapshots. Keep external copies of important memory-card files as well.
 
 ## Daily Challenge and Stage Guide
 

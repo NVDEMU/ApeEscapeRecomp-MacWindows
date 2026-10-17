@@ -69,6 +69,29 @@ static std::filesystem::path ape_escape_latest_save_backup() {
     return latest;
 }
 
+static void ape_escape_prune_save_backups() {
+    const auto root = ape_escape_data_directory() / "save-protection";
+    std::error_code ec;
+    for (;;) {
+        std::map<std::string, std::filesystem::path> backups;
+        ec.clear();
+        if (!std::filesystem::is_directory(root, ec) || ec) return;
+        for (std::filesystem::directory_iterator it(root, ec), end; !ec && it != end; it.increment(ec)) {
+            const std::string name = it->path().filename().string();
+            if (name.rfind("backup-", 0) != 0) continue;
+            ec.clear();
+            if (!it->is_directory(ec) || ec) { ec.clear(); continue; }
+            if (std::filesystem::is_regular_file(it->path() / "BACKUP_INFO.txt", ec) && !ec)
+                backups.emplace(name, it->path());
+            ec.clear();
+        }
+        if (ec || backups.size() <= 20u) return;
+        ec.clear();
+        std::filesystem::remove_all(backups.begin()->second, ec);
+        if (ec) return;
+    }
+}
+
 static std::filesystem::path ape_escape_create_save_backup() {
     const auto data = ape_escape_data_directory();
     const auto app = ape_escape_application_directory();
@@ -118,6 +141,7 @@ static std::filesystem::path ape_escape_create_save_backup() {
         std::filesystem::remove_all(pending, ec);
         return {};
     }
+    ape_escape_prune_save_backups();
     return target;
 }
 

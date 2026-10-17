@@ -300,16 +300,20 @@ static bool launch_nvd123_nightly_updater(std::string* error, bool rollback = fa
 
 BUTTON = r'''
     /* This button is injected only in the Ape Escape build. The bundled helper
-     * checks NVDEMU's macos-nightly release and installs only after this app exits. */
+     * checks NVDEMU's Nightly release and installs only after this app exits. */
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::TextColored(col(th.accent2), "nvd123 Nightly Updates");
     ImGui::TextWrapped("Check for the latest Windows or Mac Nightly from the official nvd123 repository.");
     if (ImGui::Button("Check for Nightly Updates", ImVec2(px(235), px(34)))) {
         std::string error;
-        if (launch_nvd123_nightly_updater(&error)) {
+        const auto safety_snapshot = ape_escape_create_save_backup();
+        if (safety_snapshot.empty()) {
             s_nvd123_update_status =
-                "Updater opened. Follow its prompt; close Ape Escape when asked to install.";
+                "Update check was not started because the automatic safety backup failed.";
+        } else if (launch_nvd123_nightly_updater(&error)) {
+            s_nvd123_update_status =
+                "Safety backup created. Updater opened; close Ape Escape when asked to install.";
         } else {
             s_nvd123_update_status = error;
         }
@@ -324,8 +328,13 @@ BUTTON = r'''
     if (!rollback_available) ImGui::BeginDisabled();
     if (ImGui::Button("Roll Back Last Build", ImVec2(px(235), px(34)))) {
         std::string error;
-        if (launch_nvd123_nightly_updater(&error, true)) {
-            s_nvd123_update_status = "Rollback started. Follow its prompt; close Ape Escape when asked.";
+        const auto safety_snapshot = ape_escape_create_save_backup();
+        if (safety_snapshot.empty()) {
+            s_nvd123_update_status =
+                "Rollback was not started because the automatic safety backup failed.";
+        } else if (launch_nvd123_nightly_updater(&error, true)) {
+            s_nvd123_update_status =
+                "Safety backup created. Rollback started; close Ape Escape when asked.";
         } else {
             s_nvd123_update_status = error;
         }
