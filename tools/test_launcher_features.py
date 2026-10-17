@@ -48,7 +48,7 @@ if "does not delete files" not in helper:
 for token in (
     "ape_escape_today_challenge",
     "ape_escape_daily_next",
-    "ape_escape_daily_save_history",
+    "ape_escape_save_daily_history",
     "ape_escape_daily_challenges.tsv",
     "Enable matching Challenge Pack features",
     "no scores are uploaded",
@@ -56,7 +56,7 @@ for token in (
     # The stored history helper is intentionally local-only and uses a date-derived seed.
     if token not in helper:
         raise SystemExit(f"Daily Challenge implementation is missing: {token}")
-if "^ 13u" not in helper or "^ 17u" not in helper or "^ 5u" not in helper:
+if "*state ^= *state << 13u" not in helper or "*state ^= *state >> 17u" not in helper or "*state ^= *state << 5u" not in helper:
     raise SystemExit("daily challenge generator is missing its deterministic xorshift steps")
 
 stage_ids = {int(value) for value in re.findall(r"case (\d+): return \"", helper)}
@@ -71,7 +71,7 @@ for token in ("PSX_MOD_CONSTRUCTOR", "psx_mod_game_started", "psx_mod_read_half"
         raise SystemExit(f"read-only plugin template is missing API usage: {token}")
 if "psx_mod_write" in template:
     raise SystemExit("minimal plugin example must remain read-only")
-for token in ("Save Protection Center", "Daily Challenge", "Stage Knowledge Cards", "Mod Developer Toolkit"):
+for token in ("Save Protection Center", "Daily Challenge", "Stage Guide", "Mod Developer Toolkit"):
     if token not in guide:
         raise SystemExit(f"developer guide missing integration context: {token}")
 
