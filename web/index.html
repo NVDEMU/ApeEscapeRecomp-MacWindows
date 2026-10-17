@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081c2d">
+<title>Ape Escape Recompiled — Browser Experimental</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#071521;color:#eef7ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 85% 0%,#15465b 0,transparent 42%),linear-gradient(145deg,#071521,#0c2735 62%,#071521)}
+main{width:min(1120px,calc(100% - 28px));margin:auto;padding:28px 0 36px}.eyebrow{color:#6de2cb;font-size:.78rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+h1{margin:8px 0;font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.04em;line-height:1.02}.sub{color:#b8cbd7;max-width:760px;line-height:1.6}
+.panel{background:#0d2433ee;border:1px solid #2c5063;border-radius:16px;padding:18px;box-shadow:0 16px 48px #0004}
+.controls{display:grid;grid-template-columns:1fr auto;align-items:end;gap:14px;margin:20px 0}label{display:block;font-weight:700;margin-bottom:8px}
+input[type=file]{display:block;width:100%;padding:12px;border:1px solid #426779;border-radius:10px;background:#071923;color:#eaf4fa}
+button{border:0;border-radius:10px;padding:13px 20px;font-weight:800;background:#64e0c8;color:#08242b;cursor:pointer;min-width:170px}button:disabled{opacity:.45;cursor:not-allowed}
+#status{margin-top:14px;color:#c3f4e9;min-height:1.5em}.notice{color:#c4d3df;font-size:.92rem;line-height:1.55;margin-top:10px}
+.game-frame{overflow:hidden;border:1px solid #2e5c72;border-radius:16px;background:#000}canvas{display:block;width:100%;height:auto;min-height:280px;aspect-ratio:4/3;object-fit:contain;outline:none;background:#000}
+.frame-label{padding:9px 13px;background:#0a1c29;border-top:1px solid #25485a;color:#9bb4c4;font-size:.8rem}
+details{margin-top:14px}summary{cursor:pointer;color:#9dd8e8}pre{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.78rem;color:#b8c9d3;background:#06121b;border-radius:8px;padding:12px}
+footer{color:#8ca5b4;font-size:.8rem;margin-top:18px}@media(max-width:640px){.controls{grid-template-columns:1fr}button{width:100%}canvas{min-height:200px}main{padding-top:20px}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">Experimental browser port · WebAssembly</div>
+<h1>Ape Escape Recompiled</h1>
+<p class="sub">An early browser build of Ape Escape Recompiled - Enhanced Edition. Pick a game image you own, then launch the experimental runtime in the canvas below.</p>
+<section class="panel" aria-label="Game setup">
+<div class="controls"><div>
+<label for="discFile">Your Ape Escape USA disc image (.chd)</label>
+<input id="discFile" type="file" accept=".chd,application/octet-stream">
+<div class="notice">The commercial game is not included. The image is copied into browser memory for this session and is not uploaded. Large disc images need substantial RAM; use a desktop browser with plenty of memory for the first test.</div>
+</div><button id="launch" type="button" disabled>Launch game</button></div>
+<div id="status" role="status" aria-live="polite">Choose your own CHD image to begin.</div>
+</section>
+<section class="game-frame" aria-label="Game display"><canvas id="canvas" tabindex="0" width="640" height="480" aria-label="Ape Escape game screen"></canvas>
+<div class="frame-label">Click the game screen to focus it. SDL browser input and compatible gamepads depend on the browser/device.</div></section>
+<details><summary>Runtime diagnostics</summary><pre id="log" aria-live="polite">Browser launcher ready. The WebAssembly files must be served together from this directory (not opened as file://).</pre></details>
+<footer>Experimental build. Expect failures. Use a local HTTP server or static host with the complete WebAssembly artifact. No game image is distributed with this project.</footer>
+</main>
+<script>
+(() => {
+ const fileInput=document.getElementById('discFile'), launchButton=document.getElementById('launch'), status=document.getElementById('status'), log=document.getElementById('log'), canvas=document.getElementById('canvas');
+ let scriptPromise=null,selectedFile=null,launched=false;
+ function appendLog(message){const line=String(message==null?'':message);log.textContent+=(log.textContent?'\n':'')+line;if(log.textContent.length>16000)log.textContent=log.textContent.slice(-12000);log.scrollTop=log.scrollHeight;}
+ function loadRuntimeScript(){
+  if(scriptPromise)return scriptPromise;
+  scriptPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='./ApeEscapeRecomp.js';script.async=true;
+   script.onload=()=>{if(typeof window.createApeEscapeModule!=='function'){scriptPromise=null;reject(new Error('The generated WebAssembly factory was not exported.'));}else resolve();};
+   script.onerror=()=>{scriptPromise=null;reject(new Error('Could not load ApeEscapeRecomp.js. Serve all bundle files together.'));};
+   document.body.appendChild(script);});
+  return scriptPromise;
+ }
+ fileInput.addEventListener('change',()=>{selectedFile=fileInput.files&&fileInput.files[0]?fileInput.files[0]:null;launchButton.disabled=!selectedFile||launched;
+  if(!selectedFile){status.textContent='Choose your own CHD image to begin.';return;}
+  const size=(selectedFile.size/(1024*1024)).toFixed(1);status.textContent=selectedFile.name+' selected ('+size+' MiB).';
+  if(!selectedFile.name.toLowerCase().endsWith('.chd')){status.textContent='This early browser build accepts .chd images only.';launchButton.disabled=true;}
+ });
+ launchButton.addEventListener('click',async()=>{if(!selectedFile||launched)return;launched=true;launchButton.disabled=true;fileInput.disabled=true;status.textContent='Reading game image into browser memory…';
+  try{const bytes=new Uint8Array(await selectedFile.arrayBuffer());status.textContent='Loading WebAssembly runtime…';appendLog('Selected '+selectedFile.name+' ('+bytes.byteLength+' bytes).');
+   await loadRuntimeScript();status.textContent='Starting Ape Escape Recompiled…';canvas.focus();
+   await window.createApeEscapeModule({canvas,arguments:['--game','/game.toml','--disc','/game/Ape Escape USA.chd'],apeEscapeDiscBytes:bytes,print:appendLog,
+    printErr:(message)=>appendLog('[runtime] '+message),setStatus:(message)=>{status.textContent=message||'Running…';},
+    onAbort:(reason)=>{status.textContent='Runtime stopped during startup.';appendLog('ABORT: '+reason);},
+    onExit:(code)=>{status.textContent='Runtime exited (code '+code+').';appendLog('Runtime exit code: '+code);}
+   });
+   status.textContent='The runtime returned. See diagnostics if the game did not start.';
+  }catch(error){status.textContent='Browser runtime failed to start.';appendLog('STARTUP ERROR: '+(error&&error.stack?error.stack:error));launchButton.disabled=false;fileInput.disabled=false;launched=false;}
+ });
+})();
+</script></body></html>

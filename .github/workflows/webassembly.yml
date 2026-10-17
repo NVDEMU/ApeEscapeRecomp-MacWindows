@@ -10,6 +10,7 @@ on:
       - 'CMakeLists.txt'
       - 'game.toml'
       - 'tools/**'
+      - 'web/**'
       - 'psxrecomp-v4'
       - 'recomp-ui'
       - 'generated/**'
@@ -21,7 +22,7 @@ permissions:
 
 concurrency:
   group: webassembly-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   emscripten-feasibility:
@@ -38,6 +39,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Check browser-port patches and launcher shell
+        run: python tools/test_webassembly_support.py
 
       - name: Install disc tools
         run: |
@@ -94,26 +98,45 @@ jobs:
           fi
           test -s generated/SCUS_944.23_dispatch.c
 
-      - name: Attempt Emscripten CMake build and capture first blockers
+      - name: Attempt Emscripten CMake build and capture blockers
         shell: bash
         run: |
           set +e
-          mkdir -p "$RUNNER_TEMP/wasm-probe"
+          BUILD_DIR="$RUNNER_TEMP/wasm-probe/build"
+          mkdir -p "$BUILD_DIR"
           {
-            echo '$ emcmake cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release'
-            emcmake cmake -S . -B "$RUNNER_TEMP/wasm-probe/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXECUTABLE_SUFFIX=.html -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF "-DCMAKE_EXE_LINKER_FLAGS=-sUSE_WEBGL2=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY=1 -sSTACK_SIZE=67108864 -sINITIAL_MEMORY=268435456"
+            echo '$ emcmake cmake -S . -B BUILD_DIR -G Ninja -DCMAKE_BUILD_TYPE=Release'
+            emcmake cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXECUTABLE_SUFFIX=.js -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF -DPSX_NETPLAY=OFF -DBUILD_TESTING=OFF
             configure_status=$?
             echo "CMAKE_CONFIGURE_EXIT=$configure_status"
             if [ "$configure_status" -eq 0 ]; then
-              echo '$ cmake --build build --parallel 2'
-              cmake --build "$RUNNER_TEMP/wasm-probe/build" --parallel 2
-              echo "CMAKE_BUILD_EXIT=$?"
+              echo '$ cmake --build BUILD_DIR --parallel 2'
+              cmake --build "$BUILD_DIR" --parallel 2
+              build_status=$?
+              echo "CMAKE_BUILD_EXIT=$build_status"
             else
               echo "CMAKE_BUILD_SKIPPED=configure failed"
             fi
           } 2>&1 | tee "$RUNNER_TEMP/wasm-probe/emscripten-build.log"
           cp "$RUNNER_TEMP/wasm-probe/emscripten-build.log" webassembly-build.log
-          echo "Captured initial configure/build result; this feasibility job is non-blocking by design."
+          if [ -s "$BUILD_DIR/ApeEscapeRecomp.js" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.wasm" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.data" ]; then
+            mkdir -p web-dist
+            cp web/index.html "$BUILD_DIR/index.html"
+            cp "$BUILD_DIR/ApeEscapeRecomp.js" "$BUILD_DIR/ApeEscapeRecomp.wasm" "$BUILD_DIR/ApeEscapeRecomp.data" "$BUILD_DIR/index.html" web-dist/
+            echo "BROWSER_BUNDLE_READY=1"
+          else
+            echo "BROWSER_BUNDLE_READY=0 (no complete JS/WASM/data bundle was produced)"
+          fi
+          echo "Captured configure/build result; failures are logged so diagnostics can still be uploaded."
+
+      - name: Upload experimental browser bundle
+        if: always() && hashFiles('web-dist/index.html', 'web-dist/ApeEscapeRecomp.js', 'web-dist/ApeEscapeRecomp.wasm', 'web-dist/ApeEscapeRecomp.data') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-Experimental
+          path: web-dist/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload Emscripten feasibility log
         if: always()

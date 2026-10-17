@@ -39,6 +39,24 @@ if(ANDROID)
     endif()
 endif()
 
+
+# Experimental WebAssembly requires browser-specific fibers, graphics and filesystem support.
+# This mutates the checked-out submodule only during Emscripten configure; desktop builds are unchanged.
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".js" CACHE INTERNAL "Emscripten JavaScript loader output" FORCE)
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/apply_webassembly_runtime_patch.py"
+                --framework-root "${PSXRECOMP_ROOT}"
+                --project-root "${CMAKE_CURRENT_SOURCE_DIR}"
+                --build-root "${CMAKE_BINARY_DIR}"
+        RESULT_VARIABLE APE_WEBASSEMBLY_PATCH_RESULT
+    )
+    if(NOT APE_WEBASSEMBLY_PATCH_RESULT EQUAL 0)
+        message(FATAL_ERROR "Could not apply the experimental WebAssembly runtime patch.")
+    endif()
+endif()
+
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
 # Current psxrecomp emits the large game translation unit as numbered shards
