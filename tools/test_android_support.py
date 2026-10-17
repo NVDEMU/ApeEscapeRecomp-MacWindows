@@ -50,6 +50,8 @@ def check_patch_is_idempotent() -> None:
             raise SystemExit("Android GLES must exclude unsupported glGetTexImage diagnostic code")
         if "add_library(${target} SHARED" not in first_cmake:
             raise SystemExit("Android runtime target is not a shared library")
+        if 'OUTPUT_NAME "ApeEscapeRecomp"' not in first_cmake:
+            raise SystemExit("Android shared library must match SDLActivity's ApeEscapeRecomp name")
         if "# APE_ANDROID_SDL_SHARED" not in first_cmake:
             raise SystemExit("Android SDL3 shared-library configuration is missing")
         if "# APE_ANDROID_GLES_LINKAGE" not in first_cmake:

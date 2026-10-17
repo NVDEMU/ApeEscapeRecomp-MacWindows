@@ -32,6 +32,8 @@ ANDROID_RUNTIME = """    # APE_ANDROID_SHARED_RUNTIME: SDLActivity loads a share
             ${generated_sources}
             ${PSXRT_EXTRAS_SOURCES}
         )
+        # Android's SDLActivity loads the last entry in getLibraries().
+        set_target_properties(${target} PROPERTIES OUTPUT_NAME "ApeEscapeRecomp")
     else()
         add_executable(${target}
             ${PSXRECOMP_RUNTIME_SOURCES}
