@@ -12,6 +12,18 @@ RUNTIME_START = """    add_executable(${target}
         ${PSXRT_EXTRAS_SOURCES}
     )"""
 
+SDL_STATIC_START = """        set(SDL_SHARED OFF CACHE BOOL "Build SDL3 shared library" FORCE)
+        set(SDL_STATIC ON CACHE BOOL "Build SDL3 static library" FORCE)"""
+
+ANDROID_SDL_LINKAGE = """        # APE_ANDROID_SDL_SHARED: SDLActivity explicitly loads libSDL3.so.
+        if(ANDROID)
+            set(SDL_SHARED ON CACHE BOOL "Build SDL3 shared library" FORCE)
+            set(SDL_STATIC OFF CACHE BOOL "Build SDL3 static library" FORCE)
+        else()
+            set(SDL_SHARED OFF CACHE BOOL "Build SDL3 shared library" FORCE)
+            set(SDL_STATIC ON CACHE BOOL "Build SDL3 static library" FORCE)
+        endif()"""
+
 ANDROID_RUNTIME = """    # APE_ANDROID_SHARED_RUNTIME: SDLActivity loads a shared library, not an exe.
     if(ANDROID)
         add_library(${target} SHARED
@@ -48,11 +60,15 @@ ANDROID_ENTRY = """int main(int argc, char** argv) {
 #endif"""
 
 def patch_runtime_cmake(text: str) -> str:
-    if "# APE_ANDROID_SHARED_RUNTIME" in text:
-        return text
-    if text.count(RUNTIME_START) != 1:
-        raise ValueError("Expected one known runtime add_executable() block in runtime/runtime.cmake; refusing an unsafe patch.")
-    return text.replace(RUNTIME_START, ANDROID_RUNTIME, 1)
+    if "# APE_ANDROID_SHARED_RUNTIME" not in text:
+        if text.count(RUNTIME_START) != 1:
+            raise ValueError("Expected one known runtime add_executable() block in runtime/runtime.cmake; refusing an unsafe patch.")
+        text = text.replace(RUNTIME_START, ANDROID_RUNTIME, 1)
+    if "# APE_ANDROID_SDL_SHARED" not in text:
+        if text.count(SDL_STATIC_START) != 1:
+            raise ValueError("Expected one known SDL3 linkage block in runtime/runtime.cmake; refusing an unsafe patch.")
+        text = text.replace(SDL_STATIC_START, ANDROID_SDL_LINKAGE, 1)
+    return text
 
 def patch_main_cpp(text: str) -> str:
     if "#include <SDL3/SDL_system.h>" not in text:
