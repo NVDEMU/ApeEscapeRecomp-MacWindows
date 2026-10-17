@@ -22,6 +22,7 @@ MODEL_HEADER = Path("src/common/launcher_model.h")
 MONKEPEDIA_VIEW_MARKER = "APE_ESCAPE_MONKEPEDIA_VIEW"
 LOGO_SOURCE = Path("recomp/launcher/ape_escape_logo.png")
 LOGO_DEST = Path("assets/consoles/psx/img/brand_psx.tga")
+EXTRA_HELPERS_PATH = Path("tools/launcher_extra_views.inc")
 APE_THEME_MARKER = "launcher_theme_ape_escape"
 APE_THEME_DISPATCH_MARKER = 'strcmp(name, "ape_escape")'
 BRAND_SIZE_MARKER = "Ape Escape stacked-logo sizing"
@@ -652,7 +653,7 @@ MONKEPEDIA_HELPER = r'''/* APE_ESCAPE_MONKEPEDIA_HELPER: source-backed monkey li
 struct ApeMonkeEntry {
     int stage;
     int index;
-    std::string stage_name, name, description;
+    std::string stage_name, name, description, source_url;
 };
 static std::vector<ApeMonkeEntry> s_ape_monke_entries;
 static bool s_ape_monke_catalog_loaded = false;
@@ -685,7 +686,7 @@ static void ape_escape_load_monke_catalog() {
         const int stage = static_cast<int>(ape_escape_monke_number(f[0]));
         const int index = static_cast<int>(ape_escape_monke_number(f[2]));
         if (index <= 0) continue;
-        s_ape_monke_entries.push_back({stage, index, f[1], f[3], f[5]});
+        s_ape_monke_entries.push_back({stage, index, f[1], f[3], f[5], f[6]});
     }
 }
 static void ape_escape_load_caught_checklist() {
@@ -814,6 +815,7 @@ QUICK_TOOLS = r'''
         ape_escape_open_nightly_page();
     if (!s_ape_escape_quick_status.empty())
         ImGui::TextWrapped("%s", s_ape_escape_quick_status.c_str());
+    ape_escape_draw_save_protection_center(th, quick_button_w, quick_gap);
 '''
 
 OLD_UI_DEFAULTS = r'''static const SDL_Scancode kPsxDefaults[LNG_PSX_PAD_BUTTON_COUNT] = {
@@ -1025,6 +1027,22 @@ def main() -> int:
             enum_anchor, enum_anchor + "\n    LNG_VIEW_MONKEPEDIA, /* " + MONKEPEDIA_VIEW_MARKER + " */", 1)
         model_path.write_text(model_text, encoding="utf-8")
 
+    extra_views_marker = "APE_ESCAPE_EXTRA_LAUNCHER_VIEWS"
+    if extra_views_marker not in model_text:
+        if args.check:
+            return fail("Daily Challenge, Stage Guide and Mod Toolkit views are not declared.", 1)
+        extra_view_anchor = "    LNG_VIEW_MONKEPEDIA, /* " + MONKEPEDIA_VIEW_MARKER + " */"
+        if model_text.count(extra_view_anchor) != 1:
+            return fail("Pinned launcher model no longer matches the guarded extra-view enum anchor.")
+        model_text = model_text.replace(
+            extra_view_anchor,
+            extra_view_anchor + "\n    LNG_VIEW_DAILY_CHALLENGE, /* APE_ESCAPE_EXTRA_LAUNCHER_VIEWS */"
+                + "\n    LNG_VIEW_STAGE_GUIDE,"
+                + "\n    LNG_VIEW_MOD_TOOLKIT,",
+            1,
+        )
+        model_path.write_text(model_text, encoding="utf-8")
+
     helper_marker = "APE_ESCAPE_MONKEPEDIA_HELPER"
     if helper_marker not in launcher_text:
         if args.check:
@@ -1032,6 +1050,19 @@ def main() -> int:
         if launcher_text.count(DRAW_ANCHOR) != 1:
             return fail("Pinned launcher no longer matches the guarded Monkepedia helper anchor.")
         launcher_text = launcher_text.replace(DRAW_ANCHOR, MONKEPEDIA_HELPER + "\n" + DRAW_ANCHOR, 1)
+
+    extra_helper_path = project_root / EXTRA_HELPERS_PATH
+    if not extra_helper_path.is_file():
+        return fail(f"Required launcher feature source is missing: {extra_helper_path}", 2)
+    extra_helpers = extra_helper_path.read_text(encoding="utf-8")
+    if "APE_ESCAPE_NEW_FEATURES_HELPER" not in extra_helpers:
+        return fail("Launcher feature source is missing its required marker.", 2)
+    if "APE_ESCAPE_NEW_FEATURES_HELPER" not in launcher_text:
+        if args.check:
+            return fail("Save Protection, Daily Challenge, Stage Cards and Mod Toolkit helpers are missing.", 1)
+        if launcher_text.count(DRAW_ANCHOR) != 1:
+            return fail("Pinned launcher no longer matches the guarded extra-feature helper anchor.")
+        launcher_text = launcher_text.replace(DRAW_ANCHOR, extra_helpers + "\n" + DRAW_ANCHOR, 1)
 
     nav_marker = "APE_ESCAPE_MONKEPEDIA_NAV"
     if nav_marker not in launcher_text:
