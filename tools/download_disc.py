@@ -298,71 +298,31 @@ def main() -> int:
     github_repo = os.environ.get("GAME_ASSETS_REPO", DEFAULT_ASSETS_REPO).strip()
     github_tag = os.environ.get("GAME_ASSETS_TAG", DEFAULT_ASSETS_TAG).strip()
     github_filename = os.environ.get("GAME_ASSETS_FILENAME", DEFAULT_ASSET_FILENAME).strip()
-    key = os.environ.get("DROPBOX_APP_KEY", "").strip()
-    secret = os.environ.get("DROPBOX_APP_SECRET", "").strip()
-    refresh = os.environ.get("DROPBOX_REFRESH_TOKEN", "").strip()
-    shared_url = os.environ.get("DISC_URL", "").strip()
+    github_token = os.environ.get("GAME_ASSETS_TOKEN", "").strip()
+    github_repo = os.environ.get("GAME_ASSETS_REPO", DEFAULT_ASSETS_REPO).strip()
+    github_tag = os.environ.get("GAME_ASSETS_TAG", DEFAULT_ASSETS_TAG).strip()
+    github_filename = os.environ.get("GAME_ASSETS_FILENAME", DEFAULT_ASSET_FILENAME).strip()
 
     try:
-        # The private GitHub Release is the primary source. If its token is set,
-        # do not silently fall back to Dropbox: a missing tag/asset or permission
-        # issue should fail early and clearly, rather than hit the exhausted link.
-        if github_token:
-            if try_source(
-                "private GitHub Release asset",
-                lambda path: download_github_release_asset(
-                    path, github_token, github_repo, github_tag, github_filename
-                ),
-                candidate,
-                destination,
-            ):
-                return 0
+        if not github_token:
             print(
-                "Configured private GitHub Release download failed; verify GAME_ASSETS_TOKEN "
-                "can read the private repository and that GAME_ASSETS_TAG and "
-                "GAME_ASSETS_FILENAME exactly match the uploaded Release asset.",
+                "GAME_ASSETS_TOKEN is required to retrieve the CHD from the private GitHub Release; "
+                "Dropbox fallback is intentionally disabled.",
                 file=sys.stderr,
             )
             return 1
-
-        # Legacy Dropbox paths remain only as a fallback for jobs that do not yet
-        # have GAME_ASSETS_TOKEN configured.
-        # Prefer Dropbox's content API for the configured shared link. This avoids
-        # HTML preview pages and uses app-level OAuth, so no user refresh token is
-        # required. The result is still checked for a real CHD before acceptance.
-        if key and secret and shared_url:
-            if try_source(
-                "Dropbox shared-link content API",
-                lambda path: download_shared_link_api(path, shared_url),
-                candidate,
-                destination,
-            ):
-                return 0
-
-        # Retain path-based OAuth for installations that already have a refresh token.
-        if key and secret and refresh:
-            if try_source(
-                "authenticated Dropbox API",
-                lambda path: download_dropbox_api(path),
-                candidate,
-                destination,
-            ):
-                return 0
-
-        if shared_url:
-            for label, url in shared_url_variants(shared_url):
-                if try_source(
-                    label,
-                    lambda path, candidate_url=url: download_shared_url(candidate_url, path),
-                    candidate,
-                    destination,
-                ):
-                    return 0
-
+        if try_source(
+            "private GitHub Release asset",
+            lambda path: download_github_release_asset(
+                path, github_token, github_repo, github_tag, github_filename
+            ),
+            candidate,
+            destination,
+        ):
+            return 0
         print(
-            "No source produced a valid CHD. Check that the Dropbox API path "
-            f"{DROPBOX_API_PATH!r} exists, or update APE_ESCAPE_DISC_URL to a direct "
-            "download link. A non-empty download is not sufficient.",
+            "The private GitHub Release did not yield a valid CHD. Check token access, "
+            "release tag, and exact asset filename.",
             file=sys.stderr,
         )
         return 1
