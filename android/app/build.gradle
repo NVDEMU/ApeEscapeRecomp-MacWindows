@@ -1,0 +1,143 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+def repoRoot = rootProject.projectDir.parentFile
+def stagedAssetsDir = layout.buildDirectory.dir('generated/apeEscapeAssets')
+def sdlJavaDir = layout.buildDirectory.dir('generated/sdl3-java')
+def sdlResDir = layout.buildDirectory.dir('generated/sdl3-res')
+def sdlVersion = '3.4.10'
+def sdlSourceZip = "https://github.com/libsdl-org/SDL/archive/refs/tags/release-${sdlVersion}.zip"
+
+tasks.register('prepareSdlAndroidJava') {
+    outputs.dir(sdlJavaDir)
+    outputs.dir(sdlResDir)
+    doLast {
+        File javaRoot = sdlJavaDir.get().asFile
+        File resRoot = sdlResDir.get().asFile
+        File javaSentinel = new File(javaRoot, 'org/libsdl/app/SDLActivity.java')
+        if (javaSentinel.isFile() && resRoot.isDirectory()) return
+
+        delete(javaRoot, resRoot)
+        javaRoot.mkdirs()
+        resRoot.mkdirs()
+        File downloadDir = layout.buildDirectory.dir('downloads').get().asFile
+        File archive = new File(downloadDir, "SDL-release-${sdlVersion}.zip")
+        downloadDir.mkdirs()
+        if (!archive.isFile()) {
+            logger.lifecycle("Downloading SDL ${sdlVersion} Android Java/resources")
+            new URL(sdlSourceZip).withInputStream { input ->
+                archive.withOutputStream { output -> output << input }
+            }
+        }
+
+        new java.util.zip.ZipFile(archive).withCloseable { zip ->
+            def entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (entry.isDirectory()) continue
+                String javaMarker = 'android-project/app/src/main/java/'
+                int javaIndex = entry.name.indexOf(javaMarker)
+                if (javaIndex >= 0 && entry.name.endsWith('.java')) {
+                    String relative = entry.name.substring(javaIndex + javaMarker.length())
+                    File destination = new File(javaRoot, relative)
+                    destination.parentFile.mkdirs()
+                    zip.getInputStream(entry).withCloseable { input ->
+                        destination.withOutputStream { output -> output << input }
+                    }
+                }
+                String resMarker = 'android-project/app/src/main/res/'
+                int resIndex = entry.name.indexOf(resMarker)
+                if (resIndex >= 0) {
+                    String relative = entry.name.substring(resIndex + resMarker.length())
+                    File destination = new File(resRoot, relative)
+                    destination.parentFile.mkdirs()
+                    zip.getInputStream(entry).withCloseable { input ->
+                        destination.withOutputStream { output -> output << input }
+                    }
+                }
+            }
+        }
+        if (!javaSentinel.isFile()) {
+            throw new GradleException("SDL ${sdlVersion} Android source did not contain SDLActivity.java")
+        }
+    }
+}
+
+tasks.register('stageApeEscapeAssets') {
+    inputs.file(new File(repoRoot, 'game.toml'))
+    inputs.dir(new File(repoRoot, 'mods/preloaded'))
+    outputs.dir(stagedAssetsDir)
+    doLast {
+        File outputRoot = stagedAssetsDir.get().asFile
+        delete(outputRoot)
+        outputRoot.mkdirs()
+        copy {
+            from new File(repoRoot, 'game.toml')
+            into outputRoot
+        }
+        copy {
+            from new File(repoRoot, 'mods/preloaded')
+            into new File(outputRoot, 'mods/preloaded')
+        }
+        // Keep desktop defaults untouched: Android starts at native resolution
+        // with the reliable software path until phone GPU behavior is verified.
+        File config = new File(outputRoot, 'game.toml')
+        String text = config.getText('UTF-8')
+        text = text.replace('renderer = "opengl"', 'renderer = "software"')
+        text = text.replace('internal_resolution = "4k"', 'internal_resolution = "native"')
+        text = text.replace('antialiasing = true', 'antialiasing = false')
+        if (!text.contains('renderer = "software"') ||
+            !text.contains('internal_resolution = "native"')) {
+            throw new GradleException("Android game.toml defaults were not staged correctly")
+        }
+        config.write(text, 'UTF-8')
+    }
+}
+
+android {
+    namespace 'com.nvd123.apeescape'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.nvd123.apeescape'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-android'
+        ndk { abiFilters 'arm64-v8a' }
+        externalNativeBuild {
+            cmake {
+                arguments '-DPSX_RECOMP_UI=OFF',
+                          '-DPSX_DEBUG_TOOLS=OFF',
+                          '-DPSX_ENABLE_VULKAN=OFF',
+                          '-DPSX_NETPLAY=OFF',
+                          '-DBUILD_TESTING=OFF',
+                          '-DPSX_SDL_BACKEND=SDL3'
+                cppFlags '-std=c++17'
+                targets 'psx-runtime'
+            }
+        }
+    }
+    buildTypes {
+        debug { debuggable true }
+        release { minifyEnabled false }
+    }
+    externalNativeBuild {
+        cmake {
+            path file('../../CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+    sourceSets {
+        main {
+            java.srcDir(sdlJavaDir)
+            res.srcDir(sdlResDir)
+            assets.srcDir(stagedAssetsDir)
+        }
+    }
+    packaging { jniLibs { useLegacyPackaging true } }
+}
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('prepareSdlAndroidJava')
+    dependsOn tasks.named('stageApeEscapeAssets')
+}

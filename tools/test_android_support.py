@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Fast static/unit checks for the experimental Android target."""
+from __future__ import annotations
+import importlib.util
+from pathlib import Path
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+PATCH_PATH = ROOT / "tools" / "apply_android_runtime_patch.py"
+SPEC = importlib.util.spec_from_file_location("apply_android_runtime_patch", PATCH_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise SystemExit("could not load Android patch script")
+PATCH = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PATCH)
+
+def check_patch_is_idempotent() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        framework = Path(td)
+        (framework / "runtime" / "src").mkdir(parents=True)
+        cmake = framework / "runtime" / "runtime.cmake"
+        main = framework / "runtime" / "src" / "main.cpp"
+        cmake.write_text(PATCH.RUNTIME_START + "\n", encoding="utf-8")
+        main.write_text(
+            '#include "psx_sdl.h"\nint main(int argc, char** argv) {\n  return argc + (argv != nullptr);\n}\n',
+            encoding="utf-8",
+        )
+        PATCH.apply(framework)
+        first_cmake = cmake.read_text(encoding="utf-8")
+        first_main = main.read_text(encoding="utf-8")
+        PATCH.apply(framework)
+        if cmake.read_text(encoding="utf-8") != first_cmake:
+            raise SystemExit("runtime CMake Android patch is not idempotent")
+        if main.read_text(encoding="utf-8") != first_main:
+            raise SystemExit("runtime main Android patch is not idempotent")
+        if "add_library(${target} SHARED" not in first_cmake:
+            raise SystemExit("Android runtime target is not a shared library")
+        if "SDL_GetAndroidInternalStoragePath" not in first_main:
+            raise SystemExit("Android app-private storage support is missing")
+        if first_main.count("APE_ANDROID_SHARED_STORAGE_ROOT") != 1:
+            raise SystemExit("Android storage marker should occur once")
+
+def check_project_scaffolding() -> None:
+    required = [
+        ROOT / "android" / "settings.gradle",
+        ROOT / "android" / "gradle.properties",
+        ROOT / "android" / "app" / "build.gradle",
+        ROOT / "android" / "app" / "src" / "main" / "AndroidManifest.xml",
+        ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "nvd123" / "apeescape" / "MainActivity.java",
+        ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "nvd123" / "apeescape" / "GameActivity.java",
+        ROOT / ".github" / "workflows" / "android.yml",
+        ROOT / "docs" / "ANDROID.md",
+    ]
+    missing = [str(path.relative_to(ROOT)) for path in required if not path.is_file()]
+    if missing:
+        raise SystemExit("missing Android scaffolding: " + ", ".join(missing))
+    activity = (ROOT / "android" / "app" / "src" / "main" / "java" /
+                "com" / "nvd123" / "apeescape" / "GameActivity.java").read_text(encoding="utf-8")
+    if 'return new String[] { "SDL3", "ApeEscapeRecomp" };' not in activity:
+        raise SystemExit("Android SDLActivity library order is not configured")
+    if '"--game"' not in activity or '"--disc"' not in activity:
+        raise SystemExit("Android game launch does not supply config and disc paths")
+    workflow = (ROOT / ".github" / "workflows" / "android.yml").read_text(encoding="utf-8")
+    for token in ("setup-android", "assembleDebug", "upload-artifact", "app-debug.apk"):
+        if token not in workflow:
+            raise SystemExit(f"Android workflow missing expected step: {token}")
+
+if __name__ == "__main__":
+    check_patch_is_idempotent()
+    check_project_scaffolding()
+    print("Android patch and project checks passed.")

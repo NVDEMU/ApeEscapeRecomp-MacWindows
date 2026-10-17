@@ -25,6 +25,20 @@ if(NOT APE_UPDATER_PATCH_RESULT EQUAL 0)
     message(FATAL_ERROR "Could not apply the nvd123 Nightly updater launcher patch.")
 endif()
 
+# Android loads a shared SDL entry-point library and needs writable app-private
+# storage. The patch is guarded and does not touch source on desktop builds.
+if(ANDROID)
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/apply_android_runtime_patch.py"
+                --framework-root "${PSXRECOMP_ROOT}"
+        RESULT_VARIABLE APE_ANDROID_RUNTIME_PATCH_RESULT
+    )
+    if(NOT APE_ANDROID_RUNTIME_PATCH_RESULT EQUAL 0)
+        message(FATAL_ERROR "Could not apply the Android runtime portability patch.")
+    endif()
+endif()
+
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
 # Current psxrecomp emits the large game translation unit as numbered shards
