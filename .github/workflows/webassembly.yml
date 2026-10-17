@@ -9,7 +9,6 @@ on:
       - 'docs/WEBASSEMBLY.md'
       - 'CMakeLists.txt'
       - 'game.toml'
-      - 'aot/overlays-web.json'
       - 'tools/**'
       - 'web/**'
       - 'psxrecomp-v4'
@@ -99,20 +98,6 @@ jobs:
           fi
           test -s generated/SCUS_944.23_dispatch.c
 
-      - name: Compile audited disc overlays into static browser C sources
-        run: |
-          set -euo pipefail
-          python3 psxrecomp-v4/tools/aot_overlay_pipeline.py static \
-            --profile aot/overlays-web.json \
-            --game-toml game.toml \
-            --disc "$RUNNER_TEMP/Ape Escape (USA).cue" \
-            --recompiler psxrecomp-v4/recompiler/build/psxrecomp-game \
-            --work-dir "$RUNNER_TEMP/aot-overlays-web" \
-            --out-dir generated \
-            --workers 2
-          test -s generated/overlays_static.c
-          find generated -maxdepth 1 -type f -name 'overlays_static_[0-9][0-9][0-9][0-9].c' -print | grep -q .
-
       - name: Attempt Emscripten CMake build and capture blockers
         shell: bash
         run: |
@@ -120,15 +105,8 @@ jobs:
           BUILD_DIR="$RUNNER_TEMP/wasm-probe/build"
           mkdir -p "$BUILD_DIR"
           {
-            # Generated AOT C files are very large; -O3 made the final overlay
-            # translation unit take an excessive amount of time in CI. Use -O1
-            # for this experimental feasibility build, keeping Release semantics
-            # while making browser compilation more tractable.
-            echo '$ emcmake cmake -S . -B BUILD_DIR -G Ninja -DCMAKE_BUILD_TYPE=Release (C/CXX Release flags: -O1 -DNDEBUG)'
-            emcmake cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release \
-              "-DCMAKE_C_FLAGS_RELEASE=-O1 -DNDEBUG" \
-              "-DCMAKE_CXX_FLAGS_RELEASE=-O1 -DNDEBUG" \
-              -DCMAKE_EXECUTABLE_SUFFIX=.js -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF -DPSX_NETPLAY=OFF -DBUILD_TESTING=OFF
+            echo '$ emcmake cmake -S . -B BUILD_DIR -G Ninja -DCMAKE_BUILD_TYPE=Release'
+            emcmake cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXECUTABLE_SUFFIX=.js -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF -DPSX_NETPLAY=OFF -DBUILD_TESTING=OFF
             configure_status=$?
             echo "CMAKE_CONFIGURE_EXIT=$configure_status"
             if [ "$configure_status" -eq 0 ]; then

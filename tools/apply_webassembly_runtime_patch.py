@@ -56,22 +56,6 @@ EMSCRIPTEN_GL = cmake("""        if(EMSCRIPTEN)
         endif()""").replace("@OPENGL_GL_LIB@", D + "{OPENGL_gl_LIBRARY}").replace("@OPENGL_OPENGL_LIB@", D + "{OPENGL_opengl_LIBRARY}")
 
 OUTPUT_NAME_ANCHOR = cmake('    set_target_properties(@TARGET@ PROPERTIES OUTPUT_NAME "@EXE_NAME@")')
-STATIC_OVERLAY_ANCHOR = cmake("""    psxrecomp_overlay_static_sources(_ov_static_sources _ov_static_present
-        TARGET      "@TARGET@"
-        STATIC_C    "@STATIC_C@"
-        PROFILE     "@CURRENT_SOURCE@/aot/overlays.json"
-        GAME_LINKED @GAME_LINKED@)""")
-EMSCRIPTEN_STATIC_OVERLAY_BLOCK = cmake("""    if(EMSCRIPTEN)
-        # APE_WEBASSEMBLY_STATIC_OVERLAY_PROFILE: use the parallel static-AOT profile.
-        set(_psxrt_overlay_profile "@CURRENT_SOURCE@/aot/overlays-web.json")
-    else()
-        set(_psxrt_overlay_profile "@CURRENT_SOURCE@/aot/overlays.json")
-    endif()
-    psxrecomp_overlay_static_sources(_ov_static_sources _ov_static_present
-        TARGET      "@TARGET@"
-        STATIC_C    "@STATIC_C@"
-        PROFILE     "@OVERLAY_PROFILE@"
-        GAME_LINKED @GAME_LINKED@)""")
 LINK_OPTIONS_ANCHOR = "# APE_WEBASSEMBLY_OUTPUT:"
 EMSCRIPTEN_LINK_OPTIONS = cmake("""    # APE_WEBASSEMBLY_OUTPUT: JavaScript factory with preloaded runtime data.
     if(EMSCRIPTEN)
@@ -225,10 +209,6 @@ def patch_runtime_cmake(text: str) -> str:
         if text.count(GL_START) != 1:
             raise ValueError("Expected one desktop OpenGL resolution block; refusing unsafe WebAssembly patch.")
         text = text.replace(GL_START, EMSCRIPTEN_GL, 1)
-    if "# APE_WEBASSEMBLY_STATIC_OVERLAY_PROFILE:" not in text:
-        if text.count(STATIC_OVERLAY_ANCHOR) != 1:
-            raise ValueError("Expected one static-overlay profile selector; refusing unsafe WebAssembly AOT patch.")
-        text = text.replace(STATIC_OVERLAY_ANCHOR, EMSCRIPTEN_STATIC_OVERLAY_BLOCK, 1)
     if LINK_OPTIONS_ANCHOR not in text:
         if text.count(OUTPUT_NAME_ANCHOR) != 1:
             raise ValueError("Expected one runtime OUTPUT_NAME anchor; refusing unsafe WebAssembly linker patch.")
@@ -255,6 +235,7 @@ def stage_browser_assets(project_root: Path, build_root: Path) -> None:
         raise FileNotFoundError(f"Missing game config: {source}")
     content = source.read_text(encoding="utf-8")
     replacements = (
+        ('overlay_cache = true', 'overlay_cache = false'),
         ('renderer = "opengl"', 'renderer = "software"'),
         ('internal_resolution = "4k"', 'internal_resolution = "native"'),
         ("antialiasing = true", "antialiasing = false"),
