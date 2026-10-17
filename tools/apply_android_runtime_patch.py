@@ -59,6 +59,10 @@ ANDROID_ENTRY = """int main(int argc, char** argv) {
     }
 #endif"""
 
+GL_START = "        if(COMMAND recomp_resolve_gl)\n            recomp_resolve_gl(_psx_gl_target)\n            target_link_libraries(${target} PRIVATE ${_psx_gl_target})\n        else()\n            # No recomp-ui checkout (PSX_RECOMP_UI=OFF): same resolution inline.\n            find_package(OpenGL)\n            if(TARGET OpenGL::GL)\n                target_link_libraries(${target} PRIVATE OpenGL::GL)\n            elseif(TARGET OpenGL::OpenGL)\n                target_link_libraries(${target} PRIVATE OpenGL::OpenGL)\n            elseif(OPENGL_gl_LIBRARY)\n                target_link_libraries(${target} PRIVATE \"${OPENGL_gl_LIBRARY}\")\n            elseif(OPENGL_opengl_LIBRARY)\n                target_link_libraries(${target} PRIVATE \"${OPENGL_opengl_LIBRARY}\")\n            endif()\n        endif()"
+
+ANDROID_GL_LINKAGE = "        if(ANDROID)\n            # APE_ANDROID_GLES_LINKAGE: Android provides GLES/EGL, not desktop GLX/OpenGL.\n            target_link_libraries(${target} PRIVATE GLESv2 EGL)\n        elseif(COMMAND recomp_resolve_gl)\n            recomp_resolve_gl(_psx_gl_target)\n            target_link_libraries(${target} PRIVATE ${_psx_gl_target})\n        else()\n            # No recomp-ui checkout (PSX_RECOMP_UI=OFF): same resolution inline.\n            find_package(OpenGL)\n            if(TARGET OpenGL::GL)\n                target_link_libraries(${target} PRIVATE OpenGL::GL)\n            elseif(TARGET OpenGL::OpenGL)\n                target_link_libraries(${target} PRIVATE OpenGL::OpenGL)\n            elseif(OPENGL_gl_LIBRARY)\n                target_link_libraries(${target} PRIVATE \"${OPENGL_gl_LIBRARY}\")\n            elseif(OPENGL_opengl_LIBRARY)\n                target_link_libraries(${target} PRIVATE \"${OPENGL_opengl_LIBRARY}\")\n            endif()\n        endif()"
+
 def patch_runtime_cmake(text: str) -> str:
     if "# APE_ANDROID_SHARED_RUNTIME" not in text:
         if text.count(RUNTIME_START) != 1:
@@ -68,6 +72,10 @@ def patch_runtime_cmake(text: str) -> str:
         if text.count(SDL_STATIC_START) != 1:
             raise ValueError("Expected one known SDL3 linkage block in runtime/runtime.cmake; refusing an unsafe patch.")
         text = text.replace(SDL_STATIC_START, ANDROID_SDL_LINKAGE, 1)
+    if "# APE_ANDROID_GLES_LINKAGE" not in text:
+        if text.count(GL_START) != 1:
+            raise ValueError("Expected one known GL library resolution block in runtime/runtime.cmake; refusing an unsafe Android GL patch.")
+        text = text.replace(GL_START, ANDROID_GL_LINKAGE, 1)
     return text
 
 def patch_main_cpp(text: str) -> str:

@@ -19,7 +19,7 @@ def check_patch_is_idempotent() -> None:
         (framework / "runtime" / "src").mkdir(parents=True)
         cmake = framework / "runtime" / "runtime.cmake"
         main = framework / "runtime" / "src" / "main.cpp"
-        cmake.write_text(PATCH.RUNTIME_START + "\n" + PATCH.SDL_STATIC_START + "\n", encoding="utf-8")
+        cmake.write_text(PATCH.RUNTIME_START + "\n" + PATCH.SDL_STATIC_START + "\n" + PATCH.GL_START + "\n", encoding="utf-8")
         main.write_text(
             '#include "psx_sdl.h"\nint main(int argc, char** argv) {\n  return argc + (argv != nullptr);\n}\n',
             encoding="utf-8",
@@ -36,6 +36,10 @@ def check_patch_is_idempotent() -> None:
             raise SystemExit("Android runtime target is not a shared library")
         if "# APE_ANDROID_SDL_SHARED" not in first_cmake:
             raise SystemExit("Android SDL3 shared-library configuration is missing")
+        if "# APE_ANDROID_GLES_LINKAGE" not in first_cmake:
+            raise SystemExit("Android GLES/EGL linkage branch is missing")
+        if "target_link_libraries(${target} PRIVATE GLESv2 EGL)" not in first_cmake:
+            raise SystemExit("Android runtime must link GLESv2/EGL rather than desktop OpenGL")
         if "set(SDL_SHARED ON CACHE BOOL" not in first_cmake:
             raise SystemExit("Android must build SDL3 as the shared library loaded by SDLActivity")
         if "SDL_GetAndroidInternalStoragePath" not in first_main:
