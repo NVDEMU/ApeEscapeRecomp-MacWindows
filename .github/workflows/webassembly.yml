@@ -3,7 +3,7 @@ name: Experimental WebAssembly feasibility
 on:
   workflow_dispatch:
   push:
-    branches: [experimental-webassembly]
+    branches: [master, experimental-webassembly]
     paths:
       - '.github/workflows/webassembly.yml'
       - 'docs/WEBASSEMBLY.md'

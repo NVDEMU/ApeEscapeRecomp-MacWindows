@@ -54,7 +54,7 @@ def check_runtime_patch():
         if "#include <emscripten.h>" not in first[3] or "APE_WEBASSEMBLY_EVENT_LOOP_YIELD" not in first[3] or "emscripten_sleep(0)" not in first[3]:
             raise SystemExit("Emscripten browser runtime must yield to the event loop once per guest VBlank")
         staged = (build / "web-assets" / "game.toml").read_text(encoding="utf-8")
-        for token in ('overlay_cache = false', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false', 'disc = "game/Ape Escape USA.chd"'):
+        for token in ('overlay_cache = false', 'renderer = "opengl"', 'internal_resolution = "native"', 'antialiasing = false', 'disc = "game/Ape Escape USA.chd"'):
             if token not in staged:
                 raise SystemExit(f"Browser config missing {token!r}")
 

@@ -239,7 +239,6 @@ def stage_browser_assets(project_root: Path, build_root: Path) -> None:
     content = source.read_text(encoding="utf-8")
     replacements = (
         ('overlay_cache = true', 'overlay_cache = false'),
-        ('renderer = "opengl"', 'renderer = "software"'),
         ('internal_resolution = "4k"', 'internal_resolution = "native"'),
         ("antialiasing = true", "antialiasing = false"),
     )
