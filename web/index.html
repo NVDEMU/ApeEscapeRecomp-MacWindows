@@ -131,7 +131,7 @@ kbd{display:inline-block;min-width:26px;padding:3px 6px;text-align:center;border
    appendLog('Selected disc '+selectedFile.name+' ('+discBytes.byteLength+' bytes).');
    appendLog('Selected BIOS '+selectedBios.name+' ('+biosBytes.byteLength+' bytes); it stays in this browser session.');
    await loadRuntimeScript();status.textContent='Starting Ape Escape Recompiled…';canvas.focus();
-   const moduleConfig={canvas,arguments:['--config','/game.toml'],apeEscapeDiscBytes:discBytes,apeEscapeBiosBytes:biosBytes,print:appendLog,
+   const moduleConfig={canvas,arguments:['--config','/game.toml','--bios','/bios/SCPH1001.BIN'],apeEscapeDiscBytes:discBytes,apeEscapeBiosBytes:biosBytes,print:appendLog,
     printErr:(message)=>appendLog('[runtime] '+message),setStatus:(message)=>{status.textContent=message||'Running…';},
     onAbort:(reason)=>{status.textContent='Runtime stopped during startup.';appendLog('ABORT: '+reason);},
     onExit:(code)=>{status.textContent='Runtime exited (code '+code+').';appendLog('Runtime exit code: '+code);}};

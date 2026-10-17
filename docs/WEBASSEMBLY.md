@@ -4,7 +4,7 @@ This is an isolated browser target for Ape Escape Recompiled - Enhanced Edition 
 
 ## Approach
 
-The target uses Emscripten to compile the existing C/C++ runtime and generated game translation to WebAssembly. SDL is already the input/audio/window abstraction. The browser shell accepts a user-supplied USA .chd plus a matching user-dumped SCPH-1001 BIOS image (512 KiB), writes both into Emscripten's virtual filesystem and launches the runtime. The recompiled build targets SCPH-1001, so the generated 11 KiB OpenBIOS replacement is not compatible with this profile. The commercial game image and proprietary BIOS are never packaged or uploaded.
+The target uses Emscripten to compile the existing C/C++ runtime and generated game translation to WebAssembly. SDL is already the input/audio/window abstraction. The browser shell accepts a user-supplied USA .chd plus a matching user-dumped SCPH-1001 BIOS image (512 KiB), writes both into Emscripten's virtual filesystem and launches the runtime with that retail BIOS explicitly selected. The framework's MIT-licensed OpenBIOS image and license are also included because the runtime validates those default assets even when a retail BIOS is selected. OpenBIOS is distinct from, and not a substitute for, the selected 512 KiB retail BIOS. The commercial game image and retail BIOS are never packaged or uploaded.
 
 If linking succeeds, the workflow produces ApeEscapeRecomp.js, ApeEscapeRecomp.wasm, ApeEscapeRecomp.data and index.html in the experimental artifact. Download all files together and serve from the same directory over HTTP. Opening index.html as a file URL is unsupported. A diagnostic log is uploaded even if compilation fails.
 
@@ -14,7 +14,7 @@ If linking succeeds, the workflow produces ApeEscapeRecomp.js, ApeEscapeRecomp.w
 - Skips native OpenGL/GLX package discovery; Emscripten supplies the GLES/WebGL imports.
 - Disables the optional glGetTexImage renderer diagnostic, unsupported in WebGL. Normal rendering code remains available.
 - Stages a browser-specific game config with overlay cache/autocompilation disabled, software rendering, native resolution and antialiasing off. This avoids native compiler spawning and restores the previously successful browser compile path; guest overlays use the runtime interpreter fallback and may run slowly. Overlay/cache initialization runs synchronously on the browser main thread because this target does not enable pthreads.
-- Preloads only the game config and mod catalogue. The launcher stages the selected SCPH-1001 BIOS at the framework's expected `/bios/SCPH1001.BIN` path before runtime startup; no BIOS image is embedded in the public bundle.
+- Preloads the game config, mod catalogue and the framework's redistributable OpenBIOS image plus its license. The launcher stages the user's matching SCPH-1001 BIOS at runtime and explicitly passes it with `--bios /bios/SCPH1001.BIN`; the retail BIOS is never embedded or uploaded.
 - Attempts to store save files in IndexedDB through Emscripten's IDBFS backend, with diagnostics if persistence is unavailable.
 
 ## Current limitations and gates

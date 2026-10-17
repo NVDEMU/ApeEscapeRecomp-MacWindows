@@ -40,8 +40,9 @@ def check_runtime_patch():
             raise SystemExit("WebAssembly patch is not idempotent")
         if "APE_WEBASSEMBLY_GL_LINKAGE" not in first[0] or "createApeEscapeModule" not in first[0]:
             raise SystemExit("Browser OpenGL bypass or JS factory flags are missing")
-        if "@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin" in first[0] or "OpenBIOS.LICENSE" in first[0]:
-            raise SystemExit("Browser build must not embed OpenBIOS when the recompiled runtime expects SCPH-1001")
+        for token in ("@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin", "@FRAMEWORK@/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"):
+            if token not in first[0]:
+                raise SystemExit(f"Browser runtime is missing required bundled BIOS asset {token!r}")
         if "APE_WEBASSEMBLY_FIBERS" not in first[1] or "emscripten_fiber_swap" not in first[1]:
             raise SystemExit("Emscripten fiber backend is missing")
         if "getcontext(" in first[1].split(PATCH.FIBER_ANCHOR, 1)[0]:
@@ -62,9 +63,10 @@ def check_shell_workflow():
     pre = (ROOT / "web" / "wasm-pre.js").read_text(encoding="utf-8")
     workflow = (ROOT / ".github" / "workflows" / "webassembly.yml").read_text(encoding="utf-8")
     runtime_patch = (ROOT / "tools" / "apply_webassembly_runtime_patch.py").read_text(encoding="utf-8")
-    if "@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin" in runtime_patch:
-        raise SystemExit("The browser build must not embed the mismatched OpenBIOS image")
-    for token in ('accept=".chd,application/octet-stream"', 'accept=".bin,application/octet-stream"', 'for="biosFile"', 'Default keyboard controls', 'Left stick / Move', '<kbd>W</kbd>', '<kbd>T</kbd> Up', '<kbd>F</kbd> Left', '<kbd>G</kbd> Down', '<kbd>H</kbd> Right', '<kbd>↑</kbd>', '<kbd>X</kbd>', '<kbd>C</kbd>', '<kbd>Z</kbd>', '<kbd>V</kbd>', '<kbd>Space</kbd>', '<kbd>Enter</kbd>', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--config'", "/game.toml", "apeEscapeDiscBytes:discBytes", "apeEscapeBiosBytes:biosBytes", "selectedBios.size!==512*1024"):
+    for token in ("@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin", "@FRAMEWORK@/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"):
+        if token not in runtime_patch:
+            raise SystemExit(f"Browser runtime patch is missing bundled asset {token!r}")
+    for token in ('accept=".chd,application/octet-stream"', 'accept=".bin,application/octet-stream"', 'for="biosFile"', 'Default keyboard controls', 'Left stick / Move', '<kbd>W</kbd>', '<kbd>T</kbd> Up', '<kbd>F</kbd> Left', '<kbd>G</kbd> Down', '<kbd>H</kbd> Right', '<kbd>↑</kbd>', '<kbd>X</kbd>', '<kbd>C</kbd>', '<kbd>Z</kbd>', '<kbd>V</kbd>', '<kbd>Space</kbd>', '<kbd>Enter</kbd>', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--config'", "/game.toml", "'--bios'", "'/bios/SCPH1001.BIN'", "apeEscapeDiscBytes:discBytes", "apeEscapeBiosBytes:biosBytes", "selectedBios.size!==512*1024"):
         if token not in page:
             raise SystemExit(f"Browser page missing {token!r}")
     for token in ("Module.preRun", "FS.writeFile", "apeEscapeDiscBytes", "/game/Ape Escape USA.chd", "apeEscapeBiosBytes", "/bios/SCPH1001.BIN", "512 * 1024"):

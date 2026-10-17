@@ -77,8 +77,11 @@ EMSCRIPTEN_LINK_OPTIONS = cmake("""    # APE_WEBASSEMBLY_OUTPUT: JavaScript fact
             "-lidbfs.js"
             "SHELL:--pre-js @SOURCE@/web/wasm-pre.js"
             "SHELL:--preload-file @BUILD@/web-assets/game.toml@/game.toml"
-            # APE_WEBASSEMBLY_USER_BIOS: do not embed a small OpenBIOS image into a build
-            # compiled for SCPH-1001; the launcher stages the user's matching BIOS at runtime.
+            # APE_WEBASSEMBLY_BUNDLED_BIOS: the runtime validates its redistributable
+            # OpenBIOS asset even when --bios explicitly selects a user-supplied retail BIOS.
+            # Bundle OpenBIOS plus its license; the retail image is staged only for this session.
+            "SHELL:--preload-file @FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin"
+            "SHELL:--preload-file @FRAMEWORK@/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"
             "SHELL:--preload-file @BUILD@/mods/bundled@/mods/bundled"
         )
     endif()""")

@@ -99,11 +99,10 @@ psxrecomp_add_runtime_target(psx-runtime
     EXTRAS_SOURCES ${APE_MOD_PLUGIN_SOURCES}
     DEBUG_PORT 4480
     WINDOW_TITLE "ApeEscapeRecomp"
-    # No DEFAULT_BIOS_PATH: an absolute build-machine path must never be baked
-    # into a release exe (runtime.cmake refuses it and warns). Omitting it takes
-    # the framework default "bios/SCPH1001.BIN", which the runtime resolves
-    # relative to the exe — and which now also accepts the region-qualified
-    # "US-PSX-SCPH1001.BIN" spelling (recompiler/include/bios_rom_alias.h).
+    # No DEFAULT_BIOS_PATH: never bake an absolute build-machine path into a release.
+    # The framework bundles OpenBIOS as its default and supports a player-selected
+    # retail SCPH-1001 BIOS. The browser launcher explicitly passes its session-local
+    # BIOS path with --bios; desktop users can choose the retail image in settings.
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
