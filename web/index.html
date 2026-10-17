@@ -57,18 +57,10 @@ footer{color:#8ca5b4;font-size:.8rem;margin-top:18px}@media(max-width:640px){.co
  launchButton.addEventListener('click',async()=>{if(!selectedFile||launched)return;launched=true;launchButton.disabled=true;fileInput.disabled=true;status.textContent='Reading game image into browser memory…';
   try{const bytes=new Uint8Array(await selectedFile.arrayBuffer());status.textContent='Loading WebAssembly runtime…';appendLog('Selected '+selectedFile.name+' ('+bytes.byteLength+' bytes).');
    await loadRuntimeScript();status.textContent='Starting Ape Escape Recompiled…';canvas.focus();
-   const moduleConfig={canvas,arguments:['--config','/game.toml'],print:appendLog,
+   const moduleConfig={canvas,arguments:['--config','/game.toml'],apeEscapeDiscBytes:bytes,print:appendLog,
     printErr:(message)=>appendLog('[runtime] '+message),setStatus:(message)=>{status.textContent=message||'Running…';},
     onAbort:(reason)=>{status.textContent='Runtime stopped during startup.';appendLog('ABORT: '+reason);},
     onExit:(code)=>{status.textContent='Runtime exited (code '+code+').';appendLog('Runtime exit code: '+code);}};
-   moduleConfig.preRun=moduleConfig.preRun||[];
-   moduleConfig.preRun.push(function(){
-    const FS=moduleConfig.FS;
-    if(!FS)throw new Error('The WebAssembly runtime did not expose its virtual filesystem. Build must export FS.');
-    try{FS.mkdir('/game');}catch(error){if(!FS.analyzePath('/game').exists)throw error;}
-    FS.writeFile('/game/Ape Escape USA.chd',bytes);
-    appendLog('Game image staged in virtual filesystem ('+bytes.byteLength+' bytes).');
-   });
    await window.createApeEscapeModule(moduleConfig);
    status.textContent='The runtime returned. See diagnostics if the game did not start.';
   }catch(error){status.textContent='Browser runtime failed to start.';appendLog('STARTUP ERROR: '+(error&&error.stack?error.stack:error));launchButton.disabled=false;fileInput.disabled=false;launched=false;}

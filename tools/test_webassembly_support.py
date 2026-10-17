@@ -61,7 +61,7 @@ def check_shell_workflow():
     page = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
     pre = (ROOT / "web" / "wasm-pre.js").read_text(encoding="utf-8")
     workflow = (ROOT / ".github" / "workflows" / "webassembly.yml").read_text(encoding="utf-8")
-    for token in ('accept=".chd,application/octet-stream"', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--disc'", "/game/Ape Escape USA.chd"):
+    for token in ('accept=".chd,application/octet-stream"', 'createApeEscapeModule', 'ApeEscapeRecomp.js', "'--config'", "/game.toml", "apeEscapeDiscBytes:bytes"):
         if token not in page:
             raise SystemExit(f"Browser page missing {token!r}")
     for token in ("Module.preRun", "FS.writeFile", "apeEscapeDiscBytes", "/game/Ape Escape USA.chd"):
