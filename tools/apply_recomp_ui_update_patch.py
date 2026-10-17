@@ -1080,17 +1080,26 @@ def main() -> int:
         )
         new_nav = (
             "            /* APE_ESCAPE_MONKEPEDIA_NAV */\n"
-            "            const int count = 2 + (m->mods ? 1 : 0) +\n"
+            "            const int count = 5 + (m->mods ? 1 : 0) +\n"
             "                              (m->has_assist_tools ? 1 : 0) +\n"
             "                              ((m->credits_text && m->credits_text[0]) ? 1 : 0);\n"
-            "            const float w = std::max(px(96.0f), ImGui::CalcTextSize(\"Monkepedia\").x + px(24.0f));\n"
+            "            const float w = std::max({px(86.0f), ImGui::CalcTextSize(\"Monkepedia\").x + px(18.0f), ImGui::CalcTextSize(\"Daily Challenge\").x + px(18.0f)});\n"
             "            const float total = w * count + gap * (count - 1);\n"
             "            ImGui::SetCursorPos(ImVec2(right - total, y));\n"
             "            if (ImGui::Button(ui_text(\"Settings\"), ImVec2(w, px(34))))\n"
             "                launcher_model_set_view(m, LNG_VIEW_SETTINGS);\n"
             "            ImGui::SameLine(0, gap);\n"
             "            if (ImGui::Button(\"Monkepedia\", ImVec2(w, px(34))))\n"
-            "                launcher_model_set_view(m, LNG_VIEW_MONKEPEDIA);"
+            "                launcher_model_set_view(m, LNG_VIEW_MONKEPEDIA);\n"
+            "            ImGui::SameLine(0, gap);\n"
+            "            if (ImGui::Button(\"Daily Challenge\", ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_DAILY_CHALLENGE);\n"
+            "            ImGui::SameLine(0, gap);\n"
+            "            if (ImGui::Button(\"Stage Guide\", ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_STAGE_GUIDE);\n"
+            "            ImGui::SameLine(0, gap);\n"
+            "            if (ImGui::Button(\"Mod Toolkit\", ImVec2(w, px(34))))\n"
+            "                launcher_model_set_view(m, LNG_VIEW_MOD_TOOLKIT);"
         )
         if launcher_text.count(old_nav) != 1:
             return fail("Pinned launcher navigation no longer matches the guarded Monkepedia nav anchor.")
@@ -1105,8 +1114,14 @@ def main() -> int:
             return fail("Pinned launcher view switch no longer matches the guarded Monkepedia body anchor.")
         launcher_text = launcher_text.replace(
             body_anchor,
-            body_anchor + "\n        case LNG_VIEW_MONKEPEDIA: /* " + body_marker + " */ ape_escape_draw_monke_pedia(m, th); break;",
+            body_anchor + "\n        case LNG_VIEW_MONKEPEDIA: /* " + body_marker + " */ ape_escape_draw_monke_pedia(m, th); break;"
+                + "\n        case LNG_VIEW_DAILY_CHALLENGE: /* APE_ESCAPE_EXTRA_LAUNCHER_BODY */ ape_escape_draw_daily_challenge(m, th); break;"
+                + "\n        case LNG_VIEW_STAGE_GUIDE: ape_escape_draw_stage_guide(m, th); break;"
+                + "\n        case LNG_VIEW_MOD_TOOLKIT: ape_escape_draw_mod_toolkit(m, th); break",
             1)
+
+    if "APE_ESCAPE_EXTRA_LAUNCHER_BODY" not in launcher_text:
+        return fail("Daily Challenge, Stage Guide and Mod Toolkit view dispatch is missing.", 1)
 
     # Add the accessibility card at the end of the Settings page.
     if ACCESSIBILITY_MARKER not in launcher_text:
