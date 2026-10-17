@@ -1,0 +1,81 @@
+name: Publish experimental browser build to GitHub Pages
+
+on:
+  push:
+    branches: [experimental-webassembly]
+    paths:
+      - '.github/workflows/deploy-browser-pages.yml'
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful WebAssembly workflow run ID containing the browser artifact
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish browser build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages for workflow deployments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const { data: pages } = await github.rest.repos.getPages({ owner, repo });
+              core.info('Current Pages build type: ' + pages.build_type);
+              if (pages.build_type !== 'workflow') {
+                await github.rest.repos.updatePages({ owner, repo, build_type: 'workflow' });
+                core.info('Switched Pages to GitHub Actions deployments.');
+              }
+            } catch (error) {
+              core.warning('Could not automatically change the Pages source setting: ' + error.message);
+              core.warning('Continuing with the deployment attempt from the configured Pages source branch.');
+            }
+
+      - name: Download the last successful browser bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-Experimental
+          path: web-dist
+          repository: \${{ github.repository }}
+          run-id: \${{ inputs.source_run_id || '39071617864' }}
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify browser files and exclude game images
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html ApeEscapeRecomp.js ApeEscapeRecomp.wasm ApeEscapeRecomp.data; do
+            test -s "web-dist/$file"
+          done
+          if find web-dist -type f -print | grep -Eiq '\.(chd|cue|bin|iso)$'; then
+            echo "::error::Disc image files must never be published to GitHub Pages."
+            exit 1
+          fi
+          count="$(find web-dist -maxdepth 1 -type f | wc -l)"
+          test "$count" -eq 4
+          echo "Verified four browser files. No game image is included."
+          find web-dist -maxdepth 1 -type f -print | sort
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web-dist
+
+      - name: Deploy browser build
+        id: deployment
+        uses: actions/deploy-pages@v4
