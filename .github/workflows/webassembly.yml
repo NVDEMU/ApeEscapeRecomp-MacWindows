@@ -48,14 +48,14 @@ jobs:
       - name: Install Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 3.1.74
+          version: 6.0.10
           actions-cache-folder: 'emsdk-cache'
 
       - name: Verify Emscripten toolchain
         run: |
           set -euo pipefail
           emcc --version
-          emcmake --version
+          command -v emcmake
           cat > "$RUNNER_TEMP/emscripten-smoke.c" <<'EOF'
           #include <stdio.h>
           int main(void) { puts("Emscripten toolchain OK"); return 0; }
@@ -101,7 +101,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/wasm-probe"
           {
             echo '$ emcmake cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release'
-            emcmake cmake -S . -B "$RUNNER_TEMP/wasm-probe/build" -G Ninja -DCMAKE_BUILD_TYPE=Release
+            emcmake cmake -S . -B "$RUNNER_TEMP/wasm-probe/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXECUTABLE_SUFFIX=.html -DPSX_RECOMP_UI=OFF -DPSX_DEBUG_TOOLS=OFF -DPSX_ENABLE_VULKAN=OFF "-DCMAKE_EXE_LINKER_FLAGS=-sUSE_WEBGL2=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sASYNCIFY=1 -sSTACK_SIZE=67108864 -sINITIAL_MEMORY=268435456"
             configure_status=$?
             echo "CMAKE_CONFIGURE_EXIT=$configure_status"
             if [ "$configure_status" -eq 0 ]; then
