@@ -187,14 +187,14 @@ jobs:
           for file in index.html ApeEscapeRecomp.js ApeEscapeRecomp.wasm ApeEscapeRecomp.data; do
             test -s "web-dist/$file"
           done
-          if find web-dist -type f \\( -iname '*.chd' -o -iname '*.cue' -o -iname '*.bin' -o -iname '*.iso' \\) -print -quit | grep -q .; then
+          if find web-dist -type f \( -iname '*.chd' -o -iname '*.cue' -o -iname '*.bin' -o -iname '*.iso' \) -print -quit | grep -q .; then
             echo "::error::Disc image files must never be published to GitHub Pages."
             exit 1
           fi
           count="$(find web-dist -maxdepth 1 -type f | wc -l)"
           test "$count" -eq 4
           echo "Verified four public browser files; no game image included."
-          find web-dist -maxdepth 1 -type f -printf '%f (%s bytes)\\n' | sort
+          find web-dist -maxdepth 1 -type f -print | sort
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
