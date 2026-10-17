@@ -36,7 +36,6 @@ enum {
     APE_SKY_FLYER_GADGET = 5u,
     APE_RIGHT_STICK_DEADZONE = 28,
     APE_AXIS_CENTER = 0x80,
-    APE_AXIS_RADIUS = 100,
 
     /* Three presses must arrive within roughly one second of each other. */
     APE_JUMP_COMBO_TIMEOUT_FRAMES = 60u,
