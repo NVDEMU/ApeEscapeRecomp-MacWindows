@@ -20,9 +20,11 @@ on:
 permissions:
   contents: read
 
+# Give each run its own concurrency key so a genuinely wedged runner cannot
+# block a newer diagnostic build. The compile command itself has a hard timeout.
 concurrency:
-  group: webassembly-${{ github.ref }}
-  cancel-in-progress: true
+  group: webassembly-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   emscripten-feasibility:
@@ -111,8 +113,11 @@ jobs:
             echo "CMAKE_CONFIGURE_EXIT=$configure_status"
             if [ "$configure_status" -eq 0 ]; then
               echo '$ cmake --build BUILD_DIR --parallel 2'
-              cmake --build "$BUILD_DIR" --parallel 2
+              timeout --signal=INT --kill-after=30s 30m cmake --build "$BUILD_DIR" --parallel 2
               build_status=$?
+              if [ "$build_status" -eq 124 ] || [ "$build_status" -eq 137 ]; then
+                echo "CMAKE_BUILD_TIMEOUT=30m"
+              fi
               echo "CMAKE_BUILD_EXIT=$build_status"
             else
               echo "CMAKE_BUILD_SKIPPED=configure failed"
