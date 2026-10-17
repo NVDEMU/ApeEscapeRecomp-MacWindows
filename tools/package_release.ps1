@@ -197,6 +197,9 @@ if (!(Test-Path -LiteralPath $UpdaterCaBundle) -or (Get-Item -LiteralPath $Updat
 Invoke-Native { & python -c "import ssl,sys; c=ssl.create_default_context(cafile=sys.argv[1]); assert c.verify_mode == ssl.CERT_REQUIRED and c.check_hostname" $UpdaterCaBundle } 'validate updater CA bundle'
 New-Item -ItemType Directory -Force (Join-Path $Stage 'docs') | Out-Null
 Copy-Item (Join-Path $Root 'docs/AOT_OVERLAYS.md') (Join-Path $Stage 'docs')
+New-Item -ItemType Directory -Force (Join-Path $Stage 'docs/mod-development') | Out-Null
+Copy-Item (Join-Path $Root 'docs/MOD_DEVELOPER_TOOLKIT.md') (Join-Path $Stage 'docs')
+Copy-Item (Join-Path $Root 'templates/mod-plugin/example_plugin.c') (Join-Path $Stage 'docs/mod-development/example_plugin.c')
 $BundledBiosSrc = Join-Path $BuildPath "bios"
 if (!(Test-Path (Join-Path $BundledBiosSrc "openbios.bin")) -or
     (Get-Item (Join-Path $BundledBiosSrc "openbios.bin")).Length -ne 524288 -or
