@@ -56,6 +56,8 @@ EMSCRIPTEN_GL = cmake("""        if(EMSCRIPTEN)
         endif()""").replace("@OPENGL_GL_LIB@", D + "{OPENGL_gl_LIBRARY}").replace("@OPENGL_OPENGL_LIB@", D + "{OPENGL_opengl_LIBRARY}")
 
 OUTPUT_NAME_ANCHOR = cmake('    set_target_properties(@TARGET@ PROPERTIES OUTPUT_NAME "@EXE_NAME@")')
+STATIC_PROFILE_START = cmake('        PROFILE     "@CURRENT_SOURCE@/aot/overlays.json"')
+STATIC_PROFILE_BROWSER = cmake('        # APE_WEBASSEMBLY_STARTUP_AOT: select the bounded browser mode-table overlay profile.\n        PROFILE     "@CURRENT_SOURCE@/aot/overlays-browser.json"')
 LINK_OPTIONS_ANCHOR = "# APE_WEBASSEMBLY_OUTPUT:"
 EMSCRIPTEN_LINK_OPTIONS = cmake("""    # APE_WEBASSEMBLY_OUTPUT: JavaScript factory with preloaded runtime data.
     if(EMSCRIPTEN)
@@ -216,6 +218,10 @@ def patch_runtime_cmake(text: str) -> str:
         if text.count(OUTPUT_NAME_ANCHOR) != 1:
             raise ValueError("Expected one runtime OUTPUT_NAME anchor; refusing unsafe WebAssembly linker patch.")
         text = text.replace(OUTPUT_NAME_ANCHOR, OUTPUT_NAME_ANCHOR + "\n" + EMSCRIPTEN_LINK_OPTIONS, 1)
+    if "APE_WEBASSEMBLY_STARTUP_AOT" not in text:
+        if text.count(STATIC_PROFILE_START) != 1:
+            raise ValueError("Expected one overlay-static profile anchor; refusing unsafe startup AOT patch.")
+        text = text.replace(STATIC_PROFILE_START, STATIC_PROFILE_BROWSER, 1)
     return text
 
 def patch_fiber(text: str) -> str:

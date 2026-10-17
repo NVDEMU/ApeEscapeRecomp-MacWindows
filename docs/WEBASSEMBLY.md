@@ -13,7 +13,7 @@ If linking succeeds, the workflow produces ApeEscapeRecomp.js, ApeEscapeRecomp.w
 - Uses Emscripten's cooperative fiber API with Asyncify instead of Windows Fibers or POSIX ucontext.
 - Skips native OpenGL/GLX package discovery; Emscripten supplies the GLES/WebGL imports.
 - Disables the optional glGetTexImage renderer diagnostic, unsupported in WebGL. Normal rendering code remains available.
-- Stages a browser-specific game config with overlay cache/autocompilation disabled, the OpenGL renderer backed by WebGL 2, native internal resolution and antialiasing off. This lets the browser use GPU-accelerated rendering on supported systems while avoiding 4K rendering cost. Dynamically loaded guest overlays still use the runtime interpreter fallback and can remain the largest CPU bottleneck. Overlay/cache initialization runs synchronously on the browser main thread because this target does not enable pthreads.
+- Stages a browser-specific game config with overlay cache/autocompilation disabled, the OpenGL renderer backed by WebGL 2, native internal resolution and antialiasing off. A separate audited static AOT tier compiles the 16 verified mode-table overlays loaded at 0x80136000 before the browser executable is linked. This targets mode/cutscene transitions without compiling every overlay into the first browser build. Stage-specific area overlays (0x8013D000), the two minigame executables, and unresolved members remain on the interpreter fallback for now. Overlay/cache initialization runs synchronously on the browser main thread because this target does not enable pthreads. If the startup AOT stage fails, the workflow logs the failure and safely builds with the previous fallback.
 - Preloads the game config, mod catalogue and the framework's redistributable OpenBIOS image plus its license. The launcher stages the user's matching SCPH-1001 BIOS at runtime and explicitly passes it with `--bios /bios/SCPH1001.BIN`; the retail BIOS is never embedded or uploaded.
 - Attempts to store save files in IndexedDB through Emscripten's IDBFS backend, with diagnostics if persistence is unavailable.
 
@@ -21,7 +21,7 @@ If linking succeeds, the workflow produces ApeEscapeRecomp.js, ApeEscapeRecomp.w
 
 This is an early port, not a claim of playable browser support. A successful configure or link does not prove game boot. Runtime overlay execution/autocompilation, SDL/browser event-loop behavior, graphics parity, sound, memory use and save durability still require real testing. The generated runtime has at least about 624 MB of static WebAssembly memory before loading the CHD, so this iteration sets an initial 768 MiB heap and allows growth to 3 GiB. The launcher also reads the full .chd into browser memory and copies it into the virtual filesystem; use a desktop browser with plenty of available RAM.
 
-Milestones: (1) produce a complete .js/.wasm/.data bundle, (2) load the page and enter runtime without a startup abort, (3) reach the game, and (4) verify video, audio, controller input and saves. Only after those tests should this be considered for release distribution.
+Milestones: (1) produce a complete .js/.wasm/.data bundle, (2) load the page and enter runtime without a startup abort, (3) compare intro/title performance with the 16-image startup AOT tier, (4) verify a stage before expanding coverage, and (5) verify video, audio, controller input and saves. A successful build is not a performance measurement; browser frame pacing still requires real gameplay testing.
 
 ## Build workflow
 

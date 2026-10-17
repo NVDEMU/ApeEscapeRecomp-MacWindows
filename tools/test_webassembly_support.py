@@ -2,6 +2,7 @@
 """Static regression checks for the experimental Emscripten browser target."""
 from __future__ import annotations
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 
@@ -22,7 +23,7 @@ def check_runtime_patch():
         fiber = framework / "runtime" / "src" / "psx_fiber.c"
         gl = framework / "runtime" / "src" / "gpu_gl_renderer.c"
         main = framework / "runtime" / "src" / "main.cpp"
-        cmake.write_text(PATCH.GL_START + "\n" + PATCH.OUTPUT_NAME_ANCHOR + "\n", encoding="utf-8")
+        cmake.write_text(PATCH.GL_START + "\n" + PATCH.OUTPUT_NAME_ANCHOR + "\n" + PATCH.STATIC_PROFILE_START + "\n", encoding="utf-8")
         fiber.write_text('#include "psx_fiber.h"\n#if defined(_WIN32)\nvoid win(void) {}\n' +
                          PATCH.FIBER_ANCHOR + "\nvoid posix(void) {}\n#endif\n", encoding="utf-8")
         gl.write_text(PATCH.GL_DUMP_START + "\n", encoding="utf-8")
@@ -40,6 +41,8 @@ def check_runtime_patch():
             raise SystemExit("WebAssembly patch is not idempotent")
         if "APE_WEBASSEMBLY_GL_LINKAGE" not in first[0] or "createApeEscapeModule" not in first[0]:
             raise SystemExit("Browser OpenGL bypass or JS factory flags are missing")
+        if "APE_WEBASSEMBLY_STARTUP_AOT" not in first[0] or "aot/overlays-browser.json" not in first[0]:
+            raise SystemExit("Browser runtime must validate the startup-only static overlay profile")
         for token in ("${PSXRECOMP_ROOT}/bios/openbios.bin@/bios/openbios.bin", "${PSXRECOMP_ROOT}/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"):
             if token not in first[0]:
                 raise SystemExit(f"Browser runtime is missing required bundled BIOS asset {token!r}")
@@ -75,8 +78,28 @@ def check_shell_workflow():
     for token in ("test_webassembly_support.py", "web-dist", "ApeEscapeRecomp.wasm"):
         if token not in workflow:
             raise SystemExit(f"WebAssembly workflow missing {token!r}")
-    if "aot_overlay_pipeline.py static" in workflow or "generated/overlays_static.c" in workflow:
-        raise SystemExit("Browser feasibility workflow should use the proven interpreter-fallback build path")
+    profile_path = ROOT / "aot" / "overlays-browser.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    if profile.get("static_output") != "generated/overlays_static.c" or profile.get("expected_records") != 16:
+        raise SystemExit("Browser AOT profile must publish the bounded 16-record startup tier")
+    expected_members = {0x180, 0x181, 0x182, 0x183, 0x184, 0x186, 0x187, 0x188, 0x189, 0x18A, 0x18B, 0x1AB, 0x1AC, 0x1AD, 0x1AE, 0x1AF}
+    if len(profile.get("images", [])) != 1 or profile["images"][0].get("method") != "packed_sector_members":
+        raise SystemExit("Browser AOT profile must only include the verified packed mode-table overlay inventory")
+    packed = profile["images"][0]
+    selected = {int(item["index"], 16) for item in packed.get("members", [])}
+    excluded = {int(item["index"], 16) for item in packed.get("excluded_members", [])}
+    if selected != expected_members:
+        raise SystemExit("Browser AOT profile selected overlay member set changed")
+    if selected | excluded != set(range(0x180, 0x1B1)) or selected & excluded:
+        raise SystemExit("Browser AOT profile must classify every packed member exactly once")
+    if any(not item.get("reason", "").strip() for item in packed.get("excluded_members", [])):
+        raise SystemExit("Every deferred browser AOT member needs a reason")
+    for token in ("aot_overlay_pipeline.py static", "--profile aot/overlays-browser.json", "generated/overlays_static.c", "BROWSER_AOT_EXIT", "aot-browser.log"):
+        if token not in workflow:
+            raise SystemExit(f"Browser workflow missing startup AOT generation step token {token!r}")
+    cmake_project = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+    if "GAME_OVERLAY_STATIC_C" not in cmake_project or "${APE_BROWSER_STATIC_OVERLAY_ARGS}" not in cmake_project:
+        raise SystemExit("WebAssembly target must link generated static startup overlays")
 
 if __name__ == "__main__":
     check_runtime_patch()

@@ -102,6 +102,33 @@ jobs:
           fi
           test -s generated/SCUS_944.23_dispatch.c
 
+      - name: Compile startup-mode overlays for WebAssembly
+        shell: bash
+        run: |
+          set -uo pipefail
+          AOT_LOG="$RUNNER_TEMP/aot-browser.log"
+          set +e
+          timeout --signal=INT --kill-after=20s 20m python3 psxrecomp-v4/tools/aot_overlay_pipeline.py static \
+            --profile aot/overlays-browser.json \
+            --game-toml game.toml \
+            --disc "$RUNNER_TEMP/Ape Escape (USA).cue" \
+            --recompiler psxrecomp-v4/recompiler/build/psxrecomp-game \
+            --work-dir "$RUNNER_TEMP/aot-browser-work" \
+            --out-dir generated \
+            --gcc gcc \
+            --workers 2 \
+            --cmake cmake 2>&1 | tee "$AOT_LOG"
+          aot_status=${PIPESTATUS[0]}
+          set -e
+          echo "BROWSER_AOT_EXIT=$aot_status"
+          if [ "$aot_status" -eq 0 ] && [ -s generated/overlays_static.c ]; then
+            echo "BROWSER_AOT_READY=1"
+            echo "Generated startup AOT dispatcher and $(find generated -maxdepth 1 -type f -name 'overlays_static_[0-9][0-9][0-9][0-9].c' | wc -l) overlay units."
+          else
+            echo "BROWSER_AOT_READY=0 (build will use the existing interpreter fallback)"
+            echo "::warning::Browser startup AOT generation did not complete; see $AOT_LOG. Continuing with safe interpreter fallback."
+          fi
+
       - name: Attempt Emscripten CMake build and capture blockers
         id: wasm_build
         shell: bash
@@ -128,6 +155,9 @@ jobs:
             fi
           } 2>&1 | tee "$RUNNER_TEMP/wasm-probe/emscripten-build.log"
           cp "$RUNNER_TEMP/wasm-probe/emscripten-build.log" webassembly-build.log
+          if [ -s "$RUNNER_TEMP/aot-browser.log" ]; then
+            { echo; echo "===== Browser startup AOT generation ====="; cat "$RUNNER_TEMP/aot-browser.log"; } >> webassembly-build.log
+          fi
           if [ -s "$BUILD_DIR/ApeEscapeRecomp.js" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.wasm" ] && [ -s "$BUILD_DIR/ApeEscapeRecomp.data" ]; then
             mkdir -p web-dist
             cp web/index.html "$BUILD_DIR/index.html"
