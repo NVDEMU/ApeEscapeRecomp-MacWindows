@@ -111,21 +111,27 @@ jobs:
       - id: check
         shell: bash
         env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -n "$DISC_URL" ]; then
+          if [ -n "$GAME_ASSETS_TOKEN" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Private GitHub Release asset source is configured."
+          elif [ -n "$DISC_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::GAME_ASSETS_TOKEN is not configured; using the legacy shared-link source."
           elif [ -n "$DROPBOX_APP_KEY" ] && [ -n "$DROPBOX_APP_SECRET" ] && [ -n "$DROPBOX_REFRESH_TOKEN" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::GAME_ASSETS_TOKEN is not configured; using legacy Dropbox OAuth."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::macOS build skipped. Configure either APE_ESCAPE_DISC_URL, or all three private Dropbox OAuth secrets: DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN."
+            echo "::warning::Build skipped. Configure GAME_ASSETS_TOKEN with read-only access to NVDEMU/ApeEscapeRecomp-PrivateAssets (preferred), or legacy Dropbox secrets."
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
-              echo "::error::A manual or tagged release requires a CHD download URL or all three Dropbox OAuth secrets."
+              echo "::error::A manual or tagged release requires GAME_ASSETS_TOKEN or the legacy Dropbox credentials."
               exit 1
             fi
           fi
@@ -182,9 +188,13 @@ jobs:
           restore-keys: |
             overlay-downloads-${{ matrix.arch }}-
 
-      - name: Download original disc from Dropbox
+      - name: Download and validate original disc
         id: disc
         env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_TAG: game-assets-v1
+          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
@@ -333,9 +343,13 @@ jobs:
             Write-Host "Using chdman from $dir"
           }
 
-      - name: Download original disc from private storage
+      - name: Download and validate original disc
         shell: powershell
         env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_TAG: game-assets-v1
+          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
@@ -461,9 +475,13 @@ jobs:
           path: ~/.cache/recomp-appimage-tools
           key: overlay-downloads-linux-x86_64-${{ steps.pins.outputs.framework }}
           restore-keys: overlay-downloads-linux-x86_64-
-      - name: Download original disc using the known-good release step
+      - name: Download and validate original disc
         id: disc
         env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/ApeEscapeRecomp-PrivateAssets
+          GAME_ASSETS_TAG: game-assets-v1
+          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
           DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
