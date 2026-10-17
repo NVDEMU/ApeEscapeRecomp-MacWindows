@@ -1,0 +1,125 @@
+name: Experimental WebAssembly feasibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [experimental-webassembly]
+    paths:
+      - '.github/workflows/webassembly.yml'
+      - 'docs/WEBASSEMBLY.md'
+      - 'CMakeLists.txt'
+      - 'game.toml'
+      - 'tools/**'
+      - 'psxrecomp-v4'
+      - 'recomp-ui'
+      - 'generated/**'
+      - 'src/**'
+      - 'mods/preloaded/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webassembly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emscripten-feasibility:
+    name: Emscripten configure and compile probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install disc tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mame-tools ninja-build
+          command -v chdman
+
+      - name: Install Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.74
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Verify Emscripten toolchain
+        run: |
+          set -euo pipefail
+          emcc --version
+          emcmake --version
+          cat > "$RUNNER_TEMP/emscripten-smoke.c" <<'EOF'
+          #include <stdio.h>
+          int main(void) { puts("Emscripten toolchain OK"); return 0; }
+          EOF
+          emcc "$RUNNER_TEMP/emscripten-smoke.c" -O2 -o "$RUNNER_TEMP/emscripten-smoke.html"
+          test -s "$RUNNER_TEMP/emscripten-smoke.wasm"
+          test -s "$RUNNER_TEMP/emscripten-smoke.js"
+
+      - name: Build native recompiler and OpenBIOS generator
+        run: |
+          set -euo pipefail
+          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build psxrecomp-v4/recompiler/build --parallel 2 --target psxrecomp-game psxrecomp-bios
+          (cd psxrecomp-v4 && bash tools/regen_bios.sh --config bios/OpenBIOS.toml)
+
+      - name: Download private build-time game image
+        env:
+          GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
+          GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
+        run: |
+          set -euo pipefail
+          python3 tools/download_disc.py "$RUNNER_TEMP/Ape Escape (USA).chd"
+          test -s "$RUNNER_TEMP/Ape Escape (USA).chd"
+
+      - name: Prepare disc inputs and generate translation
+        run: |
+          set -euo pipefail
+          chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
+          chdman extractcd -i "$RUNNER_TEMP/Ape Escape (USA).chd" -o "$RUNNER_TEMP/Ape Escape (USA).cue" -ob "$RUNNER_TEMP/Ape Escape (USA).bin"
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).cue" --config game.toml
+          test -s apeescape/SCUS_944.23
+          if [ ! -s generated/SCUS_944.23_dispatch.c ]; then
+            psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
+          fi
+          test -s generated/SCUS_944.23_dispatch.c
+
+      - name: Attempt Emscripten CMake build and capture first blockers
+        shell: bash
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/wasm-probe"
+          {
+            echo '$ emcmake cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release'
+            emcmake cmake -S . -B "$RUNNER_TEMP/wasm-probe/build" -G Ninja -DCMAKE_BUILD_TYPE=Release
+            configure_status=$?
+            echo "CMAKE_CONFIGURE_EXIT=$configure_status"
+            if [ "$configure_status" -eq 0 ]; then
+              echo '$ cmake --build build --parallel 2'
+              cmake --build "$RUNNER_TEMP/wasm-probe/build" --parallel 2
+              echo "CMAKE_BUILD_EXIT=$?"
+            else
+              echo "CMAKE_BUILD_SKIPPED=configure failed"
+            fi
+          } 2>&1 | tee "$RUNNER_TEMP/wasm-probe/emscripten-build.log"
+          cp "$RUNNER_TEMP/wasm-probe/emscripten-build.log" webassembly-build.log
+          echo "Captured initial configure/build result; this feasibility job is non-blocking by design."
+
+      - name: Upload Emscripten feasibility log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApeEscapeRecomp-WebAssembly-feasibility-log
+          path: webassembly-build.log
+          if-no-files-found: warn
+          retention-days: 14
