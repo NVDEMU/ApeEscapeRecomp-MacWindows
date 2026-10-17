@@ -5,9 +5,15 @@ if (typeof Module !== "undefined") {
     if (!Module.apeEscapeDiscBytes || Module.apeEscapeDiscBytes.byteLength === 0) {
       throw new Error("No Ape Escape disc image was passed to the WebAssembly runtime.");
     }
+    if (!Module.apeEscapeBiosBytes || Module.apeEscapeBiosBytes.byteLength !== 512 * 1024) {
+      throw new Error("This build requires a user-supplied 512 KiB SCPH-1001 BIOS dump.");
+    }
     if (!FS.analyzePath("/game").exists) FS.mkdir("/game");
     FS.writeFile("/game/Ape Escape USA.chd", Module.apeEscapeDiscBytes);
     Module.apeEscapeDiscBytes = null;
+    if (!FS.analyzePath("/bios").exists) FS.mkdir("/bios");
+    FS.writeFile("/bios/SCPH1001.BIN", Module.apeEscapeBiosBytes);
+    Module.apeEscapeBiosBytes = null;
     if (!FS.analyzePath("/saves").exists) FS.mkdir("/saves");
     try {
       FS.mount(IDBFS, {}, "/saves");
