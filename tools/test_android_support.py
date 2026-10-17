@@ -19,26 +19,33 @@ def check_patch_is_idempotent() -> None:
         (framework / "runtime" / "src").mkdir(parents=True)
         cmake = framework / "runtime" / "runtime.cmake"
         main = framework / "runtime" / "src" / "main.cpp"
+        gl_renderer = framework / "runtime" / "src" / "gpu_gl_renderer.c"
         cmake.write_text(PATCH.RUNTIME_START + "\n" + PATCH.SDL_STATIC_START + "\n" + PATCH.GL_START + "\n", encoding="utf-8")
         main.write_text(
             '#include "psx_sdl.h"\nint main(int argc, char** argv) {\n  return argc + (argv != nullptr);\n}\n',
             encoding="utf-8",
         )
+        gl_renderer.write_text(PATCH.GL_DUMP_START + "\n", encoding="utf-8")
         PATCH.apply(framework)
         first_cmake = cmake.read_text(encoding="utf-8")
         first_main = main.read_text(encoding="utf-8")
+        first_gl = gl_renderer.read_text(encoding="utf-8")
         PATCH.apply(framework)
         if cmake.read_text(encoding="utf-8") != first_cmake:
             raise SystemExit("runtime CMake Android patch is not idempotent")
         if main.read_text(encoding="utf-8") != first_main:
             raise SystemExit("runtime main Android patch is not idempotent")
+        if gl_renderer.read_text(encoding="utf-8") != first_gl:
+            raise SystemExit("GPU GL renderer Android patch is not idempotent")
+        if "#if defined(__ANDROID__)\\n/* APE_ANDROID_SKIP_GL_TEX_READBACK:" not in first_gl:
+            raise SystemExit("Android GLES must exclude unsupported glGetTexImage diagnostic code")
         if "add_library(${target} SHARED" not in first_cmake:
             raise SystemExit("Android runtime target is not a shared library")
         if "# APE_ANDROID_SDL_SHARED" not in first_cmake:
             raise SystemExit("Android SDL3 shared-library configuration is missing")
         if "# APE_ANDROID_GLES_LINKAGE" not in first_cmake:
             raise SystemExit("Android GLES/EGL linkage branch is missing")
-        if "target_link_libraries(${target} PRIVATE GLESv2 EGL)" not in first_cmake:
+        if "target_link_libraries(${target} PRIVATE GLESv3 EGL)" not in first_cmake:
             raise SystemExit("Android runtime must link GLESv2/EGL rather than desktop OpenGL")
         if "set(SDL_SHARED ON CACHE BOOL" not in first_cmake:
             raise SystemExit("Android must build SDL3 as the shared library loaded by SDLActivity")
