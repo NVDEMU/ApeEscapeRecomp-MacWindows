@@ -26,7 +26,7 @@ def check_runtime_patch():
         fiber.write_text('#include "psx_fiber.h"\n#if defined(_WIN32)\nvoid win(void) {}\n' +
                          PATCH.FIBER_ANCHOR + "\nvoid posix(void) {}\n#endif\n", encoding="utf-8")
         gl.write_text(PATCH.GL_DUMP_START + "\n", encoding="utf-8")
-        main.write_text(PATCH.MAIN_INIT_ANCHOR + "\n", encoding="utf-8")
+        main.write_text(PATCH.MAIN_INCLUDE_ANCHOR + "\n" + PATCH.MAIN_INIT_ANCHOR + "\n" + PATCH.VBLANK_PRESENT_ANCHOR + "\n", encoding="utf-8")
         project = base / "project"
         (project / "web").mkdir(parents=True)
         (project / "web" / "index.html").write_text("<html></html>", encoding="utf-8")
@@ -48,6 +48,8 @@ def check_runtime_patch():
             raise SystemExit("WebGL diagnostic readback stub is missing")
         if "APE_WEBASSEMBLY_SYNC_OVERLAY_INIT" not in first[3]:
             raise SystemExit("Emscripten overlay/cache initialization must not create a worker thread")
+        if "#include <emscripten.h>" not in first[3] or "APE_WEBASSEMBLY_EVENT_LOOP_YIELD" not in first[3] or "emscripten_sleep(0)" not in first[3]:
+            raise SystemExit("Emscripten browser runtime must yield to the event loop once per guest VBlank")
         staged = (build / "web-assets" / "game.toml").read_text(encoding="utf-8")
         for token in ('overlay_cache = true', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false'):
             if token not in staged:

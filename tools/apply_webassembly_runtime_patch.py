@@ -277,12 +277,35 @@ MAIN_INIT_BROWSER = """    if (deferred_overlay_cache) {
 #endif
     }"""
 
+MAIN_INCLUDE_ANCHOR = '#include "spu_shadow.h"'
+VBLANK_PRESENT_ANCHOR = """static void sdl_vblank_present(void) {
+    sync_guest_cadence_to_video_standard();"""
+VBLANK_PRESENT_BROWSER = """static void sdl_vblank_present(void) {
+#if defined(__EMSCRIPTEN__)
+    /* APE_WEBASSEMBLY_EVENT_LOOP_YIELD: this callback runs once per guest
+     * VBlank inside the continuously running scheduler. Yield after the
+     * previous frame was drawn so the browser can paint and process input. */
+    emscripten_sleep(0);
+#endif
+    sync_guest_cadence_to_video_standard();"""
+
 def patch_main(text: str) -> str:
-    if "APE_WEBASSEMBLY_SYNC_OVERLAY_INIT" in text:
-        return text
-    if text.count(MAIN_INIT_ANCHOR) != 1:
-        raise ValueError("Expected one deferred overlay-init thread block in runtime/src/main.cpp; refusing unsafe browser thread patch.")
-    return text.replace(MAIN_INIT_ANCHOR, MAIN_INIT_BROWSER, 1)
+    if "APE_WEBASSEMBLY_SYNC_OVERLAY_INIT" not in text:
+        if text.count(MAIN_INIT_ANCHOR) != 1:
+            raise ValueError("Expected one deferred overlay-init thread block in runtime/src/main.cpp; refusing unsafe browser thread patch.")
+        text = text.replace(MAIN_INIT_ANCHOR, MAIN_INIT_BROWSER, 1)
+    if "APE_WEBASSEMBLY_EVENT_LOOP_YIELD" not in text:
+        if text.count(MAIN_INCLUDE_ANCHOR) != 1:
+            raise ValueError("Expected one main.cpp include insertion anchor for Emscripten event-loop yielding.")
+        if text.count(VBLANK_PRESENT_ANCHOR) != 1:
+            raise ValueError("Expected one sdl_vblank_present anchor for Emscripten event-loop yielding.")
+        text = text.replace(
+            MAIN_INCLUDE_ANCHOR,
+            MAIN_INCLUDE_ANCHOR + "\n#if defined(__EMSCRIPTEN__)\n#include <emscripten.h>\n#endif",
+            1,
+        )
+        text = text.replace(VBLANK_PRESENT_ANCHOR, VBLANK_PRESENT_BROWSER, 1)
+    return text
 
 def apply(framework_root: Path, project_root: Path, build_root: Path) -> None:
     runtime_cmake = framework_root / "runtime" / "runtime.cmake"
