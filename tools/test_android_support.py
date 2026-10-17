@@ -59,6 +59,11 @@ def check_project_scaffolding() -> None:
         raise SystemExit("Android SDLActivity library order is not configured")
     if '"--game"' not in activity or '"--disc"' not in activity:
         raise SystemExit("Android game launch does not supply config and disc paths")
+    gradle = (ROOT / "android" / "app" / "build.gradle").read_text(encoding="utf-8")
+    if "sdlResDir" in gradle or "res.srcDir(sdlResDir)" in gradle:
+        raise SystemExit("SDL template resources must not be merged with the app's custom resources")
+    if "java.srcDir(sdlJavaDir)" not in gradle:
+        raise SystemExit("SDL Java activity/controller sources are not staged")
     workflow = (ROOT / ".github" / "workflows" / "android.yml").read_text(encoding="utf-8")
     for token in (
         "setup-android", "assembleDebug", "upload-artifact", "app-debug.apk",

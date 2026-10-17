@@ -5,22 +5,18 @@ plugins {
 def repoRoot = rootProject.projectDir.parentFile
 def stagedAssetsDir = layout.buildDirectory.dir('generated/apeEscapeAssets')
 def sdlJavaDir = layout.buildDirectory.dir('generated/sdl3-java')
-def sdlResDir = layout.buildDirectory.dir('generated/sdl3-res')
 def sdlVersion = '3.4.10'
 def sdlSourceZip = "https://github.com/libsdl-org/SDL/archive/refs/tags/release-${sdlVersion}.zip"
 
 tasks.register('prepareSdlAndroidJava') {
     outputs.dir(sdlJavaDir)
-    outputs.dir(sdlResDir)
     doLast {
         File javaRoot = sdlJavaDir.get().asFile
-        File resRoot = sdlResDir.get().asFile
         File javaSentinel = new File(javaRoot, 'org/libsdl/app/SDLActivity.java')
-        if (javaSentinel.isFile() && resRoot.isDirectory()) return
+        if (javaSentinel.isFile()) return
 
-        delete(javaRoot, resRoot)
+        delete(javaRoot)
         javaRoot.mkdirs()
-        resRoot.mkdirs()
         File downloadDir = layout.buildDirectory.dir('downloads').get().asFile
         File archive = new File(downloadDir, "SDL-release-${sdlVersion}.zip")
         downloadDir.mkdirs()
@@ -41,16 +37,6 @@ tasks.register('prepareSdlAndroidJava') {
                 if (javaIndex >= 0 && entry.name.endsWith('.java')) {
                     String relative = entry.name.substring(javaIndex + javaMarker.length())
                     File destination = new File(javaRoot, relative)
-                    destination.parentFile.mkdirs()
-                    zip.getInputStream(entry).withCloseable { input ->
-                        destination.withOutputStream { output -> output << input }
-                    }
-                }
-                String resMarker = 'android-project/app/src/main/res/'
-                int resIndex = entry.name.indexOf(resMarker)
-                if (resIndex >= 0) {
-                    String relative = entry.name.substring(resIndex + resMarker.length())
-                    File destination = new File(resRoot, relative)
                     destination.parentFile.mkdirs()
                     zip.getInputStream(entry).withCloseable { input ->
                         destination.withOutputStream { output -> output << input }
@@ -146,7 +132,6 @@ android {
     sourceSets {
         main {
             java.srcDir(sdlJavaDir)
-            res.srcDir(sdlResDir)
             assets.srcDir(stagedAssetsDir)
         }
     }
