@@ -22,7 +22,7 @@ def check_runtime_patch():
         fiber = framework / "runtime" / "src" / "psx_fiber.c"
         gl = framework / "runtime" / "src" / "gpu_gl_renderer.c"
         main = framework / "runtime" / "src" / "main.cpp"
-        cmake.write_text(PATCH.GL_START + "\n" + PATCH.OUTPUT_NAME_ANCHOR + "\n", encoding="utf-8")
+        cmake.write_text(PATCH.GL_START + "\n" + PATCH.OUTPUT_NAME_ANCHOR + "\n" + PATCH.STATIC_OVERLAY_ANCHOR + "\n", encoding="utf-8")
         fiber.write_text('#include "psx_fiber.h"\n#if defined(_WIN32)\nvoid win(void) {}\n' +
                          PATCH.FIBER_ANCHOR + "\nvoid posix(void) {}\n#endif\n", encoding="utf-8")
         gl.write_text(PATCH.GL_DUMP_START + "\n", encoding="utf-8")
@@ -40,6 +40,8 @@ def check_runtime_patch():
             raise SystemExit("WebAssembly patch is not idempotent")
         if "APE_WEBASSEMBLY_GL_LINKAGE" not in first[0] or "createApeEscapeModule" not in first[0]:
             raise SystemExit("Browser OpenGL bypass or JS factory flags are missing")
+        if "APE_WEBASSEMBLY_STATIC_OVERLAY_PROFILE" not in first[0] or "overlays-web.json" not in first[0]:
+            raise SystemExit("Browser build must select the static-AOT overlay profile")
         if "APE_WEBASSEMBLY_FIBERS" not in first[1] or "emscripten_fiber_swap" not in first[1]:
             raise SystemExit("Emscripten fiber backend is missing")
         if "getcontext(" in first[1].split(PATCH.FIBER_ANCHOR, 1)[0]:
@@ -65,7 +67,8 @@ def check_shell_workflow():
     for token in ("Module.preRun", "FS.writeFile", "apeEscapeDiscBytes", "/game/Ape Escape USA.chd"):
         if token not in pre:
             raise SystemExit(f"Browser pre-run hook missing {token!r}")
-    for token in ("test_webassembly_support.py", "web-dist", "ApeEscapeRecomp.wasm"):
+    for token in ("test_webassembly_support.py", "web-dist", "ApeEscapeRecomp.wasm",
+                  "aot_overlay_pipeline.py static", "generated/overlays_static.c"):
         if token not in workflow:
             raise SystemExit(f"WebAssembly workflow missing {token!r}")
 

@@ -92,10 +92,19 @@ file(GLOB APE_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
 # "Mod catalog is missing package(s) the sources define". Bead beads-eio.3.101.
 set(APE_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 
+# Browser builds link audited original-disc overlays as static C translation units.
+# Native desktop/Android builds retain their existing overlay path.
+set(APE_WEB_STATIC_OVERLAY_ARGS)
+if(EMSCRIPTEN)
+    set(APE_WEB_STATIC_OVERLAY_ARGS
+        GAME_OVERLAY_STATIC_C "${CMAKE_CURRENT_SOURCE_DIR}/generated/overlays_static.c")
+endif()
+
 psxrecomp_add_runtime_target(psx-runtime
     PGXP
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
+    ${APE_WEB_STATIC_OVERLAY_ARGS}
     EXTRAS_SOURCES ${APE_MOD_PLUGIN_SOURCES}
     DEBUG_PORT 4480
     WINDOW_TITLE "ApeEscapeRecomp"

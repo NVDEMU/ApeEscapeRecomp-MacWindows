@@ -9,6 +9,7 @@ on:
       - 'docs/WEBASSEMBLY.md'
       - 'CMakeLists.txt'
       - 'game.toml'
+      - 'aot/overlays-web.json'
       - 'tools/**'
       - 'web/**'
       - 'psxrecomp-v4'
@@ -22,7 +23,7 @@ permissions:
 
 concurrency:
   group: webassembly-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   emscripten-feasibility:
@@ -97,6 +98,20 @@ jobs:
             psxrecomp-v4/recompiler/build/psxrecomp-game --config game.toml
           fi
           test -s generated/SCUS_944.23_dispatch.c
+
+      - name: Compile audited disc overlays into static browser C sources
+        run: |
+          set -euo pipefail
+          python3 psxrecomp-v4/tools/aot_overlay_pipeline.py static \
+            --profile aot/overlays-web.json \
+            --game-toml game.toml \
+            --disc "$RUNNER_TEMP/Ape Escape (USA).cue" \
+            --recompiler psxrecomp-v4/recompiler/build/psxrecomp-game \
+            --work-dir "$RUNNER_TEMP/aot-overlays-web" \
+            --out-dir generated \
+            --workers 2
+          test -s generated/overlays_static.c
+          find generated -maxdepth 1 -type f -name 'overlays_static_[0-9][0-9][0-9][0-9].c' -print | grep -q .
 
       - name: Attempt Emscripten CMake build and capture blockers
         shell: bash
