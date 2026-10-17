@@ -57,14 +57,20 @@ class DownloadDiscTests(unittest.TestCase):
         self.assertEqual(variants[-1][0], "Dropbox legacy content host")
         self.assertTrue(variants[-1][1].startswith("https://dl.dropboxusercontent.com/s/abc123/"))
 
-    def test_modern_scl_link_keeps_access_key_and_uses_dl_first(self):
+    def test_modern_scl_link_keeps_access_key_and_uses_content_host_fallback(self):
         variants = shared_url_variants(
-            "https://www.dropbox.com/scl/fi/shareid/disc.chd?rlkey=abc&dl=0"
+            "https://www.dropbox.com/scl/fi/shareid/disc.chd?rlkey=abc&st=preview&dl=0"
         )
         self.assertEqual(variants[0][0], "Dropbox dl=1")
         self.assertIn("rlkey=abc", variants[0][1])
         self.assertIn("dl=1", variants[0][1])
-        self.assertEqual(len(variants), 2)
+        self.assertEqual(variants[1][0], "Dropbox raw=1")
+        self.assertEqual(variants[2][0], "Dropbox modern content host")
+        self.assertTrue(variants[2][1].startswith("https://dl.dropboxusercontent.com/scl/fi/shareid/"))
+        self.assertIn("rlkey=abc", variants[2][1])
+        self.assertIn("st=preview", variants[2][1])
+        self.assertIn("dl=0", variants[2][1])
+        self.assertEqual(len(variants), 3)
 
     def test_shared_download_uses_curl_default_user_agent(self):
         url = "https://www.dropbox.com/scl/fi/shareid/disc.chd?rlkey=abc&dl=1"

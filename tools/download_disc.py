@@ -145,10 +145,18 @@ def shared_url_variants(url: str) -> list[tuple[str, str]]:
     # The proven release workflow used curl with dl=1. Try that first, then raw=1.
     variants = [("Dropbox dl=1", download_url), ("Dropbox raw=1", raw_url)]
 
-    # Legacy /s/<id>/<name> links can use Dropbox's content host directly.
-    if parts.path.startswith("/s/") and parts.hostname.lower() in {"www.dropbox.com", "dropbox.com"}:
-        content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, urlencode(base_query), ""))
-        variants.append(("Dropbox legacy content host", content_url))
+    # Dropbox's modern /scl/fi/ share links can return the HTML viewer to CI
+    # even with dl=1/raw=1. The content host serves file bytes without the
+    # preview redirect; keep rlkey and other access parameters intact.
+    if parts.hostname.lower() in {"www.dropbox.com", "dropbox.com"}:
+        if parts.path.startswith("/scl/fi/"):
+            content_query = urlencode(base_query + [("dl", "0")])
+            content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, content_query, ""))
+            variants.append(("Dropbox modern content host", content_url))
+        elif parts.path.startswith("/s/"):
+            content_query = urlencode(base_query + [("dl", "0")])
+            content_url = urlunsplit(("https", "dl.dropboxusercontent.com", parts.path, content_query, ""))
+            variants.append(("Dropbox legacy content host", content_url))
 
     # Keep order while deduplicating links that were already in the desired mode.
     seen: set[str] = set()
