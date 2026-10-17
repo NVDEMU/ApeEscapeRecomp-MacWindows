@@ -32,6 +32,11 @@ jobs:
         run: python3 tools/test_monke_catalog.py
       - name: Check macOS packaging shell syntax
         run: bash -n tools/package_macos.sh
+      - name: Check Linux packaging shell syntax
+        run: |
+          set -euo pipefail
+          bash -n tools/package_appimage.sh
+          bash -n tools/test_appimage_layout.sh
       - name: Check calibrated controller defaults
         run: python3 tools/check_controller_defaults.py
       - name: Check Challenge Pack source and manifest
@@ -430,6 +435,140 @@ jobs:
           compression-level: 0
           retention-days: 14
 
+  build-linux:
+    needs: [lint, check-assets]
+    if: needs.check-assets.outputs.ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      BUILD_JOBS: 2
+      AOT_WORKERS: 2
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Linux build and AppImage dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build ccache pkg-config libgl1-mesa-dev libegl1-mesa-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev libasound2-dev libpulse-dev libudev-dev libdrm-dev libgbm-dev imagemagick curl file patchelf desktop-file-utils fuse3 libfuse2 mame-tools
+          command -v chdman
+      - name: Build SDL3 from source for Ubuntu 24.04
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch release-3.2.8 https://github.com/libsdl-org/SDL.git "$RUNNER_TEMP/SDL"
+          cmake -S "$RUNNER_TEMP/SDL" -B "$RUNNER_TEMP/SDL/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF \
+            -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+          cmake --build "$RUNNER_TEMP/SDL/build" --parallel "$BUILD_JOBS"
+          sudo cmake --install "$RUNNER_TEMP/SDL/build"
+          sudo ldconfig
+          pkg-config --modversion sdl3
+      - name: Record pinned framework revision
+        id: pins
+        run: echo "framework=$(git -C psxrecomp-v4 rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Cache compiler objects
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-linux-x86_64-${{ hashFiles('CMakeLists.txt', 'game.toml', 'src/**', 'mods/**') }}-${{ github.sha }}
+          restore-keys: ccache-linux-x86_64-
+      - name: Cache pinned overlay tool downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/recomp-appimage-tools
+          key: overlay-downloads-linux-x86_64-${{ steps.pins.outputs.framework }}
+          restore-keys: overlay-downloads-linux-x86_64-
+      - name: Download original disc using the known-good release step
+        id: disc
+        env:
+          DISC_URL: ${{ secrets.APE_ESCAPE_DISC_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
+          DEST="$RUNNER_TEMP/Ape Escape (USA).chd"
+          if [ -n "$DISC_URL" ]; then
+            # Convenience mode: the secret contains a Dropbox shared link with
+            # dl=1. The link itself is never printed or checked into the repo.
+            curl --fail --location --retry 3 --retry-delay 2 "$DISC_URL" -o "$DEST"
+          else
+            # Private mode: exchange a refresh token for a short-lived access
+            # token, then download by Dropbox path without any public link.
+            TOKEN_JSON="$(curl --fail --silent --show-error --user "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET" \
+              --data-urlencode "grant_type=refresh_token" \
+              --data-urlencode "refresh_token=$DROPBOX_REFRESH_TOKEN" \
+              https://api.dropbox.com/oauth2/token)"
+            ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
+            echo "::add-mask::$ACCESS_TOKEN"
+            curl --fail --silent --show-error --location --retry 3 \
+              -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H 'Dropbox-API-Arg: {"path":"/ApeEscapeWii-private-assets/Ape Escape (USA).chd"}' \
+              https://content.dropboxapi.com/2/files/download \
+              -o "$DEST"
+          fi
+          test -s "$DEST"
+          echo "Downloaded CHD into runner temp storage; it will not be committed or attached to the release."
+
+      - name: Build recompiler and OpenBIOS
+        run: |
+          set -euo pipefail
+          cmake -S psxrecomp-v4/recompiler -B psxrecomp-v4/recompiler/build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build psxrecomp-v4/recompiler/build-linux --parallel "$BUILD_JOBS" --target psxrecomp-game psxrecomp-bios
+          (cd psxrecomp-v4 && PSXRECOMP_BIOS_BUILD=recompiler/build-linux bash tools/regen_bios.sh --config bios/OpenBIOS.toml)
+      - name: Convert CHD and prepare game executable
+        run: |
+          set -euo pipefail
+          chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
+          chdman extractcd -i "$RUNNER_TEMP/Ape Escape (USA).chd" -o "$RUNNER_TEMP/Ape Escape (USA).cue" -ob "$RUNNER_TEMP/Ape Escape (USA).bin"
+          python3 psxrecomp-v4/tools/prepare_disc.py "$RUNNER_TEMP/Ape Escape (USA).cue" --config game.toml
+          test -s apeescape/SCUS_944.23
+      - name: Generate native game translation
+        run: |
+          set -euo pipefail
+          if [ ! -f generated/SCUS_944.23_dispatch.c ]; then psxrecomp-v4/recompiler/build-linux/psxrecomp-game --config game.toml; fi
+          test -s generated/SCUS_944.23_dispatch.c
+      - name: Test launcher patch and updater helpers
+        run: |
+          set -euo pipefail
+          python3 tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui
+          python3 tools/apply_recomp_ui_update_patch.py --ui-root recomp-ui --check
+          python3 -m py_compile tools/in_app_updater.py tools/apply_recomp_ui_update_patch.py tools/write_build_provenance.py
+          python3 tools/test_nightly_updater.py
+      - name: Build and test Linux AppImage
+        run: |
+          set -euo pipefail
+          python3 tools/write_build_provenance.py
+          bash tools/package_appimage.sh --jobs 2 --nice 0
+          APPIMAGE="$(find release-linux -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$APPIMAGE"
+          chmod +x "$APPIMAGE"
+          bash tools/test_appimage_layout.sh "$APPIMAGE"
+          cmake --build build-appimage --target ape_stick_response_test ape_preloaded_mods_test --parallel 2
+          ctest --test-dir build-appimage --output-on-failure -R 'ape_stick_response_test|ape_preloaded_mods_test'
+          sha256sum "$APPIMAGE" | sed "s|  $APPIMAGE|  $(basename "$APPIMAGE")|" > release-linux/SHA256SUMS-linux-x86_64.txt
+      - name: Upload Linux x86_64 release
+        uses: actions/upload-artifact@v4
+        with:
+          name: ape-escape-linux-x86_64
+          path: |
+            release-linux/*.AppImage
+            release-linux/SHA256SUMS-linux-x86_64.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
   normalize-nightly-release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -457,7 +596,7 @@ jobs:
           echo "Renamed macos-nightly to Nightly and marked it as the latest release."
 
   publish-release:
-    needs: [lint, check-assets, build-macos, build-windows]
+    needs: [lint, check-assets, build-macos, build-windows, build-linux]
     if: needs.check-assets.outputs.ready == 'true' && (github.ref == 'refs/heads/master' || github.ref_type == 'tag')
     concurrency:
       group: ape-escape-macos-release
@@ -512,16 +651,18 @@ jobs:
           make_latest: ${{ github.ref_type != 'tag' }}
           fail_on_unmatched_files: true
           body: |
-            Windows and macOS builds of Ape Escape Recompiled, maintained by nvd123.
+            Windows, macOS, and Linux builds of Ape Escape Recompiled - Enhanced Edition, maintained by nvd123.
 
-            Downloads include Windows x64, macOS Apple Silicon (arm64), and macOS Intel (x86_64) ZIP packages. The Mac release also includes DMGs. Mac builds are ad-hoc signed, not Developer ID signed or notarized, so Gatekeeper may show a first-launch warning.
+            Downloads include Windows x64, macOS Apple Silicon (arm64), macOS Intel (x86_64) ZIP packages and Linux x86_64 AppImage. The Mac release also includes DMGs. Mac builds are ad-hoc signed, not Developer ID signed or notarized, so Gatekeeper may show a first-launch warning.
 
-            The in-app updater checks this repository's macos-nightly release, selects the matching platform ZIP, and verifies its SHA-256 checksum before installation. The release includes nightly-manifest.json for update detection.
+            The in-app updater checks this repository's Nightly release, selects the supported Windows/macOS platform package, and verifies its SHA-256 checksum before installation. Linux AppImage updates are currently installed manually from Releases. The release includes nightly-manifest.json for update detection.
 
             The game disc and retail PlayStation BIOS are not included. The packaged OpenBIOS is MIT-licensed.
           files: |
             dist/*.zip
             dist/*.dmg
+            dist/*.AppImage
             dist/SHA256SUMS-macos-*.txt
             dist/SHA256SUMS-windows-x64.txt
+            dist/SHA256SUMS-linux-x86_64.txt
             dist/nightly-manifest.json
