@@ -40,7 +40,7 @@ def check_runtime_patch():
             raise SystemExit("WebAssembly patch is not idempotent")
         if "APE_WEBASSEMBLY_GL_LINKAGE" not in first[0] or "createApeEscapeModule" not in first[0]:
             raise SystemExit("Browser OpenGL bypass or JS factory flags are missing")
-        for token in ("@FRAMEWORK@/bios/openbios.bin@/bios/openbios.bin", "@FRAMEWORK@/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"):
+        for token in ("${PSXRECOMP_ROOT}/bios/openbios.bin@/bios/openbios.bin", "${PSXRECOMP_ROOT}/bios/OpenBIOS.LICENSE@/bios/OpenBIOS.LICENSE"):
             if token not in first[0]:
                 raise SystemExit(f"Browser runtime is missing required bundled BIOS asset {token!r}")
         if "APE_WEBASSEMBLY_FIBERS" not in first[1] or "emscripten_fiber_swap" not in first[1]:
