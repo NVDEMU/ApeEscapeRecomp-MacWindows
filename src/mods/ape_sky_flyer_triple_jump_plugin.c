@@ -5,7 +5,7 @@
 /*
  * Sky Flyer Triple Jump
  *
- * With Sky Flyer equipped, the third quick R1/R2 press in a jump sequence
+ * With Sky Flyer equipped, the third quick Cross/X press in a jump sequence
  * synthesizes a right-stick rotation burst. This deliberately delegates takeoff,
  * lift, steering and landing to the game's existing Sky Flyer logic instead of
  * writing player physics values directly.
@@ -27,10 +27,9 @@ enum {
     APE_TRANSITION_PLAYING = 0x03u,
     APE_PAD_ID_ANALOG = 0x73u,
 
-    /* PS1 pad button byte is active-low: R2=0x02, R1=0x08. */
-    APE_JUMP_R1 = 0x08u,
-    APE_JUMP_R2 = 0x02u,
-    APE_JUMP_MASK = APE_JUMP_R1 | APE_JUMP_R2,
+    /* PS1 face-button byte is active-low; Cross/X is the Jump button. */
+    APE_JUMP_CROSS = 0x40u,
+    APE_JUMP_MASK = APE_JUMP_CROSS,
 
     /* Gadget indices are the game's 0..7 inventory slots. */
     APE_SKY_FLYER_GADGET = 5u,
