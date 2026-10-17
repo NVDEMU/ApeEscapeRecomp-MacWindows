@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 10) return fail("expected ten package manifests");
+    if (manifest_count != 11) return fail("expected eleven package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
              "ape.frame-smoothing.display",
              "ape.fmv.skip",
              "ape.gadgets.quick-select",
+             "ape.gadgets.sky-flyer-triple-jump",
              "psx.pgxp",
              "ape.assist.infinite-lives",
              "ape.assist.infinite-health",
@@ -100,7 +101,7 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 10)
+    if (manager.packages().size() != 11)
         return fail("expected ten package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
@@ -302,6 +303,33 @@ int main(int argc, char** argv) {
     const auto disabled_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!disabled_plan.ok || !disabled_plan.writes.empty())
         return fail("Quick Gadget Select patched guest code while disabled");
+
+    // Sky Flyer Triple Jump is a separate, default-off controller enhancement.
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.sky-flyer-triple-jump", "sky-flyer-triple-jump",
+            true, &error)) {
+        return fail(error);
+    }
+    {
+        const auto sky_flyer_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!sky_flyer_plan.ok || !sky_flyer_plan.writes.empty() ||
+            sky_flyer_plan.plugins.size() != 1 ||
+            sky_flyer_plan.plugins.front().id != "ape.gadgets.sky-flyer-triple-jump") {
+            return fail("wrong Sky Flyer Triple Jump plugin plan");
+        }
+    }
+    if (!manager.set_feature_enabled(
+            "ape.enhancement.sky-flyer-triple-jump", "sky-flyer-triple-jump",
+            false, &error)) {
+        return fail(error);
+    }
+    {
+        const auto sky_flyer_off_plan = manager.resolve(kGameId, "", kDiscSha256);
+        if (!sky_flyer_off_plan.ok || !sky_flyer_off_plan.plugins.empty() ||
+            !sky_flyer_off_plan.writes.empty()) {
+            return fail("Sky Flyer Triple Jump remained active after disabling");
+        }
+    }
 
     // Challenge Pack features are independent, default-off and select the
     // expected native plugin only when explicitly enabled.
