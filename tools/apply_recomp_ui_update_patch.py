@@ -212,7 +212,9 @@ INCLUDES = r'''#if defined(_WIN32)
 #else
   #include <sys/types.h>
   #include <unistd.h>
-#endif'''
+#endif
+#include <cstdio>
+#include <map>'''
 
 HELPER = r'''
 /* Ape Escape's repo-owned updater. Kept outside the shared launcher model:
