@@ -113,8 +113,8 @@ jobs:
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
           GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
-          GAME_ASSETS_TAG: game-assets-v1
-          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
         run: |
           set -euo pipefail
           if [ -z "$GAME_ASSETS_TOKEN" ]; then
@@ -216,8 +216,8 @@ jobs:
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
           GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
-          GAME_ASSETS_TAG: game-assets-v1
-          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
@@ -242,7 +242,7 @@ jobs:
         run: |
           set -euo pipefail
           # The pinned prepare_disc helper is not built with a CHD reader.
-          # Use the same chdman extract flow as ApeEscapeWii-privateassets.
+          # Validate and extract the CHD fetched from the private assets release.
           chdman verify -i "$RUNNER_TEMP/Ape Escape (USA).chd"
           chdman extractcd \
             -i "$RUNNER_TEMP/Ape Escape (USA).chd" \
@@ -367,8 +367,8 @@ jobs:
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
           GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
-          GAME_ASSETS_TAG: game-assets-v1
-          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
         run: |
           $ErrorActionPreference = 'Stop'
           $dest = Join-Path $env:RUNNER_TEMP 'Ape Escape (USA).chd'
@@ -495,8 +495,8 @@ jobs:
         env:
           GAME_ASSETS_TOKEN: ${{ secrets.GAME_ASSETS_TOKEN }}
           GAME_ASSETS_REPO: NVDEMU/apeescapeprivateassets
-          GAME_ASSETS_TAG: game-assets-v1
-          GAME_ASSETS_FILENAME: Ape Escape (USA).chd
+          GAME_ASSETS_TAG: thing
+          GAME_ASSETS_FILENAME: Ape.Escape.USA.chd
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ape-disc" apeescape
@@ -613,7 +613,7 @@ jobs:
           nightly = os.environ["BUILD_REF"] == "refs/heads/master"
           manifest = {
               "schema_version": 1,
-              "repository": "NVDEMU/ApeEscapeRecomp-MacWindows",
+              "repository": "NVDEMU/ApeEscapeRecomp-MacWindowsLinux",
               "channel": "nightly" if nightly else "stable",
               "tag": "macos-nightly" if nightly else os.environ["BUILD_REF"].removeprefix("refs/tags/"),
               "version": version,
