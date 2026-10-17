@@ -50,4 +50,4 @@ for marker in (
     if marker not in source:
         raise SystemExit(f"Sky Flyer implementation is missing {marker!r}")
 
-print("Sky Flyer Triple Jump: target, default-off manifest, R1/R2 trigger, rotation guards and savestate reset verified.")
+print("Sky Flyer Triple Jump: target, default-off manifest, Cross/X Jump trigger, rotation guards and savestate reset verified.")
