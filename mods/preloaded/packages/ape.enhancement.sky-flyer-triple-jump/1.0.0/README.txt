@@ -4,7 +4,7 @@ Sky Flyer Triple Jump
 Enable "Sky Flyer Triple Jump" in the Mods page, then launch the game.
 
 - Unlock and equip the Sky Flyer.
-- Press R1 or R2 three times in quick succession (within about one second between presses).
+- Press Cross/X three times in quick succession (within about one second between presses).
 - The third press starts a short automatic right-stick rotation burst so the game's own Sky Flyer code handles takeoff and flight.
 - Hold Jump to keep the synthetic rotation going longer. The feature stops after the minimum burst when Jump is released.
 - Move the right stick manually at any time to take control back.
