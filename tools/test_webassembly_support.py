@@ -21,10 +21,12 @@ def check_runtime_patch():
         cmake = framework / "runtime" / "runtime.cmake"
         fiber = framework / "runtime" / "src" / "psx_fiber.c"
         gl = framework / "runtime" / "src" / "gpu_gl_renderer.c"
+        main = framework / "runtime" / "src" / "main.cpp"
         cmake.write_text(PATCH.GL_START + "\n" + PATCH.OUTPUT_NAME_ANCHOR + "\n", encoding="utf-8")
         fiber.write_text('#include "psx_fiber.h"\n#if defined(_WIN32)\nvoid win(void) {}\n' +
                          PATCH.FIBER_ANCHOR + "\nvoid posix(void) {}\n#endif\n", encoding="utf-8")
         gl.write_text(PATCH.GL_DUMP_START + "\n", encoding="utf-8")
+        main.write_text(PATCH.MAIN_INIT_ANCHOR + "\n", encoding="utf-8")
         project = base / "project"
         (project / "web").mkdir(parents=True)
         (project / "web" / "index.html").write_text("<html></html>", encoding="utf-8")
@@ -32,9 +34,9 @@ def check_runtime_patch():
         (project / "game.toml").write_text('[runtime]\noverlay_cache = true\n[video]\nrenderer = "opengl"\ninternal_resolution = "4k"\nantialiasing = true\n', encoding="utf-8")
         build = base / "build"
         PATCH.apply(framework, project, build)
-        first = (cmake.read_text(), fiber.read_text(), gl.read_text())
+        first = (cmake.read_text(), fiber.read_text(), gl.read_text(), main.read_text())
         PATCH.apply(framework, project, build)
-        if first != (cmake.read_text(), fiber.read_text(), gl.read_text()):
+        if first != (cmake.read_text(), fiber.read_text(), gl.read_text(), main.read_text()):
             raise SystemExit("WebAssembly patch is not idempotent")
         if "APE_WEBASSEMBLY_GL_LINKAGE" not in first[0] or "createApeEscapeModule" not in first[0]:
             raise SystemExit("Browser OpenGL bypass or JS factory flags are missing")
@@ -44,8 +46,10 @@ def check_runtime_patch():
             raise SystemExit("Emscripten fibers must precede POSIX ucontext")
         if "APE_WEBASSEMBLY_SKIP_GL_TEX_READBACK" not in first[2]:
             raise SystemExit("WebGL diagnostic readback stub is missing")
+        if "APE_WEBASSEMBLY_SYNC_OVERLAY_INIT" not in first[3]:
+            raise SystemExit("Emscripten overlay/cache initialization must not create a worker thread")
         staged = (build / "web-assets" / "game.toml").read_text(encoding="utf-8")
-        for token in ('overlay_cache = false', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false'):
+        for token in ('overlay_cache = true', 'renderer = "software"', 'internal_resolution = "native"', 'antialiasing = false'):
             if token not in staged:
                 raise SystemExit(f"Browser config missing {token!r}")
 

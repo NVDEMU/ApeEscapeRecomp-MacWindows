@@ -231,7 +231,6 @@ def stage_browser_assets(project_root: Path, build_root: Path) -> None:
         raise FileNotFoundError(f"Missing game config: {source}")
     content = source.read_text(encoding="utf-8")
     replacements = (
-        ("overlay_cache = true", "overlay_cache = false"),
         ('renderer = "opengl"', 'renderer = "software"'),
         ('internal_resolution = "4k"', 'internal_resolution = "native"'),
         ("antialiasing = true", "antialiasing = false"),
@@ -247,19 +246,60 @@ def stage_browser_assets(project_root: Path, build_root: Path) -> None:
         if not (project_root / relative).is_file():
             raise FileNotFoundError(f"Missing browser port file: {project_root / relative}")
 
+MAIN_INIT_ANCHOR = """    if (deferred_overlay_cache) {
+        overlay_init_thread = std::thread([&]() {
+            try {
+                run_deferred_overlay_init();
+            } catch (...) {
+                overlay_init_exc = std::current_exception();
+            }
+        });
+    }"""
+
+MAIN_INIT_BROWSER = """    if (deferred_overlay_cache) {
+#if defined(__EMSCRIPTEN__)
+        /* APE_WEBASSEMBLY_SYNC_OVERLAY_INIT: Browser pthreads are not enabled.
+         * Initialize the overlay/cache provider on the main thread instead.
+         * No native overlay compiler is packaged; cache misses use interpreter fallback. */
+        try {
+            run_deferred_overlay_init();
+        } catch (...) {
+            overlay_init_exc = std::current_exception();
+        }
+#else
+        overlay_init_thread = std::thread([&]() {
+            try {
+                run_deferred_overlay_init();
+            } catch (...) {
+                overlay_init_exc = std::current_exception();
+            }
+        });
+#endif
+    }"""
+
+def patch_main(text: str) -> str:
+    if "APE_WEBASSEMBLY_SYNC_OVERLAY_INIT" in text:
+        return text
+    if text.count(MAIN_INIT_ANCHOR) != 1:
+        raise ValueError("Expected one deferred overlay-init thread block in runtime/src/main.cpp; refusing unsafe browser thread patch.")
+    return text.replace(MAIN_INIT_ANCHOR, MAIN_INIT_BROWSER, 1)
+
 def apply(framework_root: Path, project_root: Path, build_root: Path) -> None:
     runtime_cmake = framework_root / "runtime" / "runtime.cmake"
     fiber_file = framework_root / "runtime" / "src" / "psx_fiber.c"
     gl_renderer = framework_root / "runtime" / "src" / "gpu_gl_renderer.c"
-    for path in (runtime_cmake, fiber_file, gl_renderer):
+    runtime_main = framework_root / "runtime" / "src" / "main.cpp"
+    for path in (runtime_cmake, fiber_file, gl_renderer, runtime_main):
         if not path.is_file():
             raise FileNotFoundError(f"Not the expected PSXRecomp checkout; missing {path}")
     cmake_text = runtime_cmake.read_text(encoding="utf-8-sig")
     fiber_text = fiber_file.read_text(encoding="utf-8-sig")
     gl_text = gl_renderer.read_text(encoding="utf-8-sig")
+    main_text = runtime_main.read_text(encoding="utf-8-sig")
     runtime_cmake.write_text(patch_runtime_cmake(cmake_text), encoding="utf-8")
     fiber_file.write_text(patch_fiber(fiber_text), encoding="utf-8")
     gl_renderer.write_text(patch_gl_diagnostics(gl_text), encoding="utf-8")
+    runtime_main.write_text(patch_main(main_text), encoding="utf-8")
     stage_browser_assets(project_root.resolve(), build_root.resolve())
 
 def main() -> int:

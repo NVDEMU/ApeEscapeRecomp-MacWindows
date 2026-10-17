@@ -13,7 +13,7 @@ If linking succeeds, the workflow produces ApeEscapeRecomp.js, ApeEscapeRecomp.w
 - Uses Emscripten's cooperative fiber API with Asyncify instead of Windows Fibers or POSIX ucontext.
 - Skips native OpenGL/GLX package discovery; Emscripten supplies the GLES/WebGL imports.
 - Disables the optional glGetTexImage renderer diagnostic, unsupported in WebGL. Normal rendering code remains available.
-- Stages a browser-specific game config with overlay cache/autocompilation disabled, software rendering and native resolution. This avoids a native compiler dependency at startup; untranslated code falling back to the interpreter may be very slow.
+- Stages a browser-specific game config with software rendering, native resolution and antialiasing off. Overlay/cache initialization runs synchronously on the browser main thread because this target does not enable pthreads. Native overlay autocompilation and dynamic native overlay libraries are unavailable, so missing translated functions must fall back to the interpreter and may run very slowly.
 - Preloads OpenBIOS, game config and the mod catalogue. The commercial CHD remains user-supplied.
 - Attempts to store save files in IndexedDB through Emscripten's IDBFS backend, with diagnostics if persistence is unavailable.
 
