@@ -297,6 +297,8 @@ for tree in assets bios; do
     [ -d "$build_dir/$tree" ] || { echo "build did not stage $tree/" >&2; exit 1; }
     cp -a "$build_dir/$tree" "$payload/$tree"
 done
+# The launcher-side Monkepedia and Stage Guide share this source-backed roster.
+cp "$root/recomp/launcher/monkepedia.tsv" "$payload/assets/monkepedia.tsv"
 
 psx_add_mod_catalog --build-path "$build_dir" --stage "$payload" \
                     --runtime-target psx-runtime
